@@ -2,198 +2,214 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Position;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class EmployeeController extends Controller
 {
-    /**
-     * Hiển thị danh sách nhân viên (có tìm kiếm & lọc).
-     */
     public function index(Request $request)
     {
-        // Lấy tất cả nhân viên — dùng query builder để hỗ trợ tìm kiếm/lọc
-        $query = Employee::query();
-
-        // Tìm kiếm theo tên hoặc email hoặc mã nhân viên
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('employee_code', 'like', "%{$search}%");
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:150'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
+            'status' => ['nullable', Rule::in(['working', 'resigned', 'inactive'])],
+        ]);
+        $query = Employee::with(['department', 'position', 'user.role']);
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($query) use ($search) {
+                $query->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('employee_code', 'like', "%{$search}%");
             });
         }
-
-        // Lọc theo phòng ban
-        if ($request->filled('department_id')) {
-            $query->where('department_id', $request->department_id);
+        foreach (['department_id', 'position_id', 'status'] as $field) {
+            if (!empty($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
         }
-
-        // Lọc theo chức vụ
-        if ($request->filled('position_id')) {
-            $query->where('position_id', $request->position_id);
-        }
-
-        // Lọc theo trạng thái
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Phân trang — 15 bản ghi mỗi trang
-        $employees   = $query->orderBy('id', 'desc')->paginate(15)->withQueryString();
-        $departments = Department::all();
-        $positions   = Position::all();
+        $employees = $query->latest('id')->paginate(15)->withQueryString();
+        $departments = Department::orderBy('name')->get();
+        $positions = Position::orderBy('name')->get();
 
         return view('admin.employee.index', compact('employees', 'departments', 'positions'));
     }
 
-    /**
-     * Hiển thị form tạo nhân viên mới.
-     */
     public function create()
     {
-        $departments = Department::all();
-        $positions   = Position::all();
+        $departments = Department::where('status', 'active')->orderBy('name')->get();
+        $positions = Position::where('status', 'active')->orderBy('name')->get();
 
         return view('admin.employee.create', compact('departments', 'positions'));
     }
 
-    /**
-     * Lưu nhân viên mới vào database.
-     */
     public function store(Request $request)
     {
-        // Validation
-        
-        $validated = $request->validate([
-            'employee_code'   => 'required|string|max:20|unique:employees,employee_code',
-            'full_name'         => 'required|string|max:100',
-            'date_of_birth'      => 'nullable|date',
-            'gender'      => 'nullable|in:Nam,Nữ,Khác',
-            'phone'  => 'nullable|string|max:15',
-            'email'          => 'nullable|email|max:100|unique:employees,email',
-            'address'        => 'nullable|string|max:255',
-            'cccd'           => 'nullable|string|max:20',
-            'hire_date'   => 'nullable|date',
-            'department_id'  => 'nullable|exists:departments,id',
-            'position_id'    => 'nullable|exists:positions,id',
-            'status'     => 'required|in:Đang làm việc,Nghỉ phép,Đã nghỉ việc,Thử việc',
-        ], [
-            'employee_code.required'  => 'Mã nhân viên không được để trống.',
-            'employee_code.unique'    => 'Mã nhân viên đã tồn tại.',
-            'full_name.required'        => 'Họ và tên không được để trống.',
-            'email.email'            => 'Email không đúng định dạng.',
-            'email.unique'           => 'Email đã được sử dụng.',
-            'status.required'    => 'Vui lòng chọn trạng thái.',
-        ]);
+        DB::transaction(function () use ($request) {
+            $employee = Employee::create($this->validateEmployee($request));
+            $employee->assignments()->create([
+                'department_id' => $employee->department_id,
+                'position_id' => $employee->position_id,
+                'effective_from' => $employee->hire_date ?? today(),
+                'changed_by' => $request->user()->id,
+                'note' => 'Phân công ban đầu.',
+            ]);
+            $this->audit($request, 'CREATE', $employee, null, $employee->getAttributes());
+        });
 
-        // Tạo nhân viên — dùng new + fill + save để tránh lỗi fillable chưa khai báo
-        $employee = new Employee();
-        $employee->employee_code  = $validated['employee_code'];
-        $employee->full_name        = $validated['full_name'];
-        $employee->date_of_birth     = $validated['date_of_birth']     ?? null;
-        $employee->gender     = $validated['gender']     ?? null;
-        $employee->phone = $validated['phone'] ?? null;
-        $employee->email         = $validated['email']         ?? null;
-        $employee->address       = $validated['address']       ?? null;
-        $employee->cccd          = $validated['cccd']          ?? null;
-        $employee->hire_date  = $validated['hire_date']  ?? null;
-        $employee->department_id = $validated['department_id'] ?? null;
-        $employee->position_id   = $validated['position_id']   ?? null;
-        $employee->status    = $validated['status'];
-        $employee->save();
-
-        return redirect()->route('employees.index')
-                         ->with('success', 'Thêm nhân viên thành công!');
+        return redirect()->route('employees.index')->with('success', 'Thêm nhân viên thành công!');
     }
 
-    /**
-     * Hiển thị chi tiết một nhân viên.
-     */
     public function show(Employee $employee)
     {
-        // Load thêm thông tin phòng ban và chức vụ nếu có
-        $department = $employee->department_id
-            ? Department::find($employee->department_id)
-            : null;
-
-        $position = $employee->position_id
-            ? Position::find($employee->position_id)
-            : null;
+        $employee->load(['department', 'position', 'user.role']);
+        $department = $employee->department;
+        $position = $employee->position;
 
         return view('admin.employee.show', compact('employee', 'department', 'position'));
     }
 
-    /**
-     * Hiển thị form chỉnh sửa nhân viên.
-     */
     public function edit(Employee $employee)
     {
-        $departments = Department::all();
-        $positions   = Position::all();
+        // Giữ lựa chọn hiện tại kể cả khi danh mục đã ngừng hoạt động.
+        $departments = Department::where('status', 'active')
+            ->orWhere('id', $employee->department_id)->orderBy('name')->get();
+        $positions = Position::where('status', 'active')
+            ->orWhere('id', $employee->position_id)->orderBy('name')->get();
 
         return view('admin.employee.edit', compact('employee', 'departments', 'positions'));
     }
 
-    /**
-     * Cập nhật thông tin nhân viên.
-     */
     public function update(Request $request, Employee $employee)
     {
-        // Validation — bỏ unique nếu trùng với chính bản ghi hiện tại
-        $validated = $request->validate([
-            'employee_code'   => 'required|string|max:20|unique:employees,employee_code,' . $employee->id,
-            'full_name'         => 'required|string|max:100',
-            'date_of_birth'      => 'nullable|date',
-            'gender'      => 'nullable|in:Nam,Nữ,Khác',
-            'phone'  => 'nullable|string|max:15',
-            'email'          => 'nullable|email|max:100|unique:employees,email,' . $employee->id,
-            'address'        => 'nullable|string|max:255',
-            'cccd'           => 'nullable|string|max:20',
-            'hire_date'   => 'nullable|date',
-            'department_id'  => 'nullable|exists:departments,id',
-            'position_id'    => 'nullable|exists:positions,id',
-            'status'     => 'required|in:Đang làm việc,Nghỉ phép,Đã nghỉ việc,Thử việc',
-        ], [
-            'employee_code.required'  => 'Mã nhân viên không được để trống.',
-            'employee_code.unique'    => 'Mã nhân viên đã tồn tại.',
-            'full_name.required'        => 'Họ và tên không được để trống.',
-            'email.email'            => 'Email không đúng định dạng.',
-            'email.unique'           => 'Email đã được sử dụng.',
-            'status.required'    => 'Vui lòng chọn trạng thái.',
-        ]);
+        DB::transaction(function () use ($request, $employee) {
+            $employee = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
+            $oldValues = $employee->getAttributes();
+            $employee->fill($this->validateEmployee($request, $employee));
+            if ($employee->isDirty(['department_id', 'position_id'])) {
+                $this->changeAssignment($request, $employee);
+            }
+            // Link đã gửi tới email cũ không được kích hoạt sau khi thay đổi email.
+            if ($employee->isDirty('email')) {
+                $user = $employee->user()->lockForUpdate()->first();
+                if ($user && $user->status === 'pending') {
+                    throw ValidationException::withMessages([
+                        'email' => 'Tài khoản đang chờ kích hoạt. Chưa thể đổi email nhận lời mời.',
+                    ]);
+                }
+            }
+            $employee->save();
+            $this->audit($request, 'UPDATE', $employee, $oldValues, $employee->getAttributes());
+        });
 
-        // Cập nhật — gán từng trường để không cần fillable
-        $employee->employee_code  = $validated['employee_code'];
-        $employee->full_name        = $validated['full_name'];
-        $employee->date_of_birth     = $validated['date_of_birth']     ?? null;
-        $employee->gender     = $validated['gender']     ?? null;
-        $employee->phone = $validated['phone'] ?? null;
-        $employee->email         = $validated['email']         ?? null;
-        $employee->address       = $validated['address']       ?? null;
-        $employee->cccd          = $validated['cccd']          ?? null;
-        $employee->hire_date  = $validated['hire_date']  ?? null;
-        $employee->department_id = $validated['department_id'] ?? null;
-        $employee->position_id   = $validated['position_id']   ?? null;
-        $employee->status    = $validated['status'];
-        $employee->save();
-
-        return redirect()->route('employees.index')
-                         ->with('success', 'Cập nhật nhân viên thành công!');
+        return redirect()->route('employees.index')->with('success', 'Cập nhật nhân viên thành công!');
     }
 
-    /**
-     * Xóa nhân viên khỏi database.
-     */
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
-        
-        $employee->delete();
+        DB::transaction(function () use ($request, $employee) {
+            $employee = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
+            $oldValues = $employee->getAttributes();
+            $employee->delete();
+            $this->audit($request, 'DELETE', $employee, $oldValues, $employee->getAttributes());
+        });
 
-        return redirect()->route('employees.index')
-                         ->with('success', 'Đã xóa nhân viên thành công!');
+        return redirect()->route('employees.index')->with('success', 'Đã xóa nhân viên; lịch sử nhân sự được giữ lại.');
+    }
+
+    private function validateEmployee(Request $request, ?Employee $employee = null): array
+    {
+        $departmentRule = Rule::exists('departments', 'id')->where(function ($query) use ($employee) {
+            $query->where(function ($query) use ($employee) {
+                $query->where('status', 'active');
+                if ($employee?->department_id) {
+                    $query->orWhere('id', $employee->department_id);
+                }
+            });
+        });
+        $positionRule = Rule::exists('positions', 'id')->where(function ($query) use ($employee) {
+            $query->where(function ($query) use ($employee) {
+                $query->where('status', 'active');
+                if ($employee?->position_id) {
+                    $query->orWhere('id', $employee->position_id);
+                }
+            });
+        });
+
+        return $request->validate([
+            'employee_code' => ['required', 'string', 'max:20', Rule::unique('employees', 'employee_code')->ignore($employee?->id)],
+            'full_name' => ['required', 'string', 'max:150'],
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d'],
+            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['required', 'email', 'max:150', Rule::unique('employees', 'email')->ignore($employee?->id)],
+            'address' => ['nullable', 'string', 'max:255'],
+            'identity_number' => ['nullable', 'string', 'max:20', Rule::unique('employees', 'identity_number')->ignore($employee?->id)],
+            'hire_date' => ['nullable', 'date_format:Y-m-d'],
+            'department_id' => ['nullable', 'integer', $departmentRule],
+            'position_id' => ['nullable', 'integer', $positionRule],
+            'status' => ['required', Rule::in(['working', 'resigned', 'inactive'])],
+        ], [
+            'employee_code.unique' => 'Mã nhân viên đã tồn tại.',
+            'email.required' => 'Vui lòng nhập email của nhân viên.',
+            'email.unique' => 'Email đã được sử dụng.',
+            'identity_number.unique' => 'Số CCCD / CMND đã được sử dụng.',
+            'department_id.exists' => 'Phòng ban không hợp lệ hoặc đã ngừng hoạt động.',
+            'position_id.exists' => 'Chức vụ không hợp lệ hoặc đã ngừng hoạt động.',
+        ]);
+    }
+
+    private function changeAssignment(Request $request, Employee $employee): void
+    {
+        $dates = $request->validate([
+            'assignment_effective_from' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+        ]);
+        $from = Carbon::parse($dates['assignment_effective_from'])->startOfDay();
+        $latest = $employee->assignments()->orderByDesc('effective_from')->orderByDesc('id')
+            ->lockForUpdate()->first();
+
+        // DATE chỉ biểu diễn một phân công mỗi ngày; tránh khoảng ngày âm/chồng lấn.
+        if (($employee->hire_date && $from->lt($employee->hire_date)) ||
+            ($latest && ($from->lte($latest->effective_from) ||
+                ($latest->effective_to && $from->lte($latest->effective_to))))) {
+            throw ValidationException::withMessages([
+                'assignment_effective_from' => 'Ngày hiệu lực phải từ ngày vào làm, sau ngày bắt đầu phân công hiện tại và không chồng lấn lịch sử.',
+            ]);
+        }
+
+        $openAssignments = $employee->assignments()->whereNull('effective_to')->lockForUpdate()->get();
+        foreach ($openAssignments as $assignment) {
+            $assignment->update(['effective_to' => $from->copy()->subDay()]);
+        }
+        $employee->assignments()->create([
+            'department_id' => $employee->department_id,
+            'position_id' => $employee->position_id,
+            'effective_from' => $from,
+            'changed_by' => $request->user()->id,
+            'note' => 'Cập nhật phòng ban hoặc chức vụ.',
+        ]);
+    }
+
+    private function audit(Request $request, string $action, Employee $employee, ?array $oldValues, array $newValues): void
+    {
+        AuditLog::create([
+            'actor_user_id' => $request->user()->id,
+            'action' => $action,
+            'entity_type' => Employee::class,
+            'entity_id' => $employee->id,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
     }
 }

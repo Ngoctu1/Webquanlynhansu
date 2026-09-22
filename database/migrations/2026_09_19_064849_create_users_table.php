@@ -13,17 +13,34 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            
-            // Khóa ngoại (FK)
-            // employee_id có thể null vì tài khoản Super Admin đôi khi không nằm trong danh sách nhân viên
-            $table->foreignId('employee_id')->nullable()->constrained('employees')->onDelete('cascade');
-            $table->foreignId('role_id')->constrained('roles')->onDelete('restrict');
-            
-            $table->string('username', 50)->unique(); // 
-            $table->string('password', 255);
-            $table->tinyInteger('status')->default(1); // 1: Active, 0: Bị khóa
+
+            $table->foreignId('employee_id')
+                ->nullable()
+                ->unique()
+                ->constrained('employees')
+                ->nullOnDelete();
+
+            $table->foreignId('role_id')
+                ->constrained('roles')
+                ->restrictOnDelete();
+
+            $table->string('username', 50)->unique();
+
+            $table->string('password')->nullable();
+
+            $table->enum('status', [
+                'pending',
+                'active',
+                'locked',
+                'disabled'
+            ])->default('pending');
+
+            $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('last_login_at')->nullable();
-            
+            $table->timestamp('password_changed_at')->nullable();
+
+            $table->rememberToken();
+
             $table->timestamps();
         });
     }

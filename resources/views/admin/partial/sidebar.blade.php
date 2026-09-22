@@ -16,18 +16,7 @@
     </div>
 
     {{-- ===== USER QUICK INFO ===== --}}
-    <div class="sidebar-user">
-        <div class="sidebar-user-avatar">AD</div>
-        <div class="sidebar-user-info">
-            <span class="sidebar-user-name">Admin HRM</span>
-            <span class="sidebar-user-role">
-                <i class="bi bi-circle-fill text-success" style="font-size:7px;"></i> Quản trị viên
-            </span>
-        </div>
-    </div>
-
-    {{-- ===== DIVIDER ===== --}}
-    <div class="sidebar-divider"></div>
+    
 
     {{-- ===== NAVIGATION MENU ===== --}}
     <div class="sidebar-scroll">

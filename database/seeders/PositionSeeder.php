@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +12,7 @@ class PositionSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::table('positions')->insert([
+        DB::table('positions')->upsert([
             [
                 'name' => 'Giám đốc',
                 'description' => 'Quản lý và điều hành toàn bộ hoạt động của công ty',
@@ -38,6 +37,6 @@ class PositionSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-        ]);
+        ], ['name'], ['description']);
     }
 }

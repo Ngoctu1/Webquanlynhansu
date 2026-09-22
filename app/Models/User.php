@@ -13,46 +13,54 @@ use Illuminate\Notifications\Notifiable;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
+    use HasFactory, Notifiable;
+
     protected $fillable = [
         'employee_id',
         'role_id',
         'username',
         'password',
         'status',
+        'email_verified_at',
         'last_login_at',
-        //     $table->id();
-        //     // Khóa ngoại (FK)
-        //     // employee_id có thể null vì tài khoản Super Admin đôi khi không nằm trong danh sách nhân viên
-        //     $table->foreignId('employee_id')->nullable()->constrained('employees')->onDelete('cascade');
-        //     $table->foreignId('role_id')->constrained('roles')->onDelete('restrict');
-        //     $table->string('username', 50)->unique(); // <<UK>>
-        //     $table->string('password', 255);
-        //     $table->tinyInteger('status')->default(1); // 1: Active, 0: Bị khóa
-        //     $table->timestamp('last_login_at')->nullable();
-        //     $table->timestamps();
+        'password_changed_at',
     ];
 
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
-    /**
-     * Get the role associated with the user.
-     */
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'password_changed_at' => 'datetime',
+        ];
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class);
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function employee()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function invitations()
+    {
+        return $this->hasMany(AccountInvitation::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(
+            AuditLog::class,
+            'actor_user_id'
+        );
     }
 }

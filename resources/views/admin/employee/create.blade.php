@@ -172,7 +172,7 @@
                                    class="form-control @error('full_name') is-invalid @enderror"
                                    value="{{ old('full_name') }}"
                                    placeholder="Nhập họ và tên đầy đủ"
-                                   maxlength="100">
+                                   maxlength="150">
                             @error('full_name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -195,9 +195,9 @@
                             <select id="gioi_tinh" name="gender"
                                     class="form-select @error('gender') is-invalid @enderror">
                                 <option value="">-- Chọn giới tính --</option>
-                                <option value="Nam"  {{ old('gender') == 'Nam'  ? 'selected' : '' }}>Nam</option>
-                                <option value="Nữ"   {{ old('gender') == 'Nữ'   ? 'selected' : '' }}>Nữ</option>
-                                <option value="Khác" {{ old('gender') == 'Khác' ? 'selected' : '' }}>Khác</option>
+                                <option value="male"  {{ old('gender') == 'male'  ? 'selected' : '' }}>Nam</option>
+                                <option value="female"   {{ old('gender') == 'female'   ? 'selected' : '' }}>Nữ</option>
+                                <option value="other" {{ old('gender') == 'other' ? 'selected' : '' }}>Khác</option>
                             </select>
                             @error('gender')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -206,13 +206,13 @@
 
                         {{-- CCCD --}}
                         <div class="col-12 col-md-4">
-                            <label for="cccd" class="form-label">Số CCCD / CMND</label>
-                            <input type="text" id="cccd" name="cccd"
-                                   class="form-control @error('cccd') is-invalid @enderror"
-                                   value="{{ old('cccd') }}"
+                            <label for="identity_number" class="form-label">Số CCCD / CMND</label>
+                            <input type="text" id="identity_number" name="identity_number"
+                                   class="form-control @error('identity_number') is-invalid @enderror"
+                                   value="{{ old('identity_number') }}"
                                    placeholder="VD: 012345678901"
                                    maxlength="20">
-                            @error('cccd')
+                            @error('identity_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -224,7 +224,7 @@
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ old('phone') }}"
                                    placeholder="VD: 0901234567"
-                                   maxlength="15">
+                                   maxlength="20">
                             @error('phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -232,12 +232,12 @@
 
                         {{-- Email --}}
                         <div class="col-12 col-md-8">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" id="email" name="email"
+                            <label for="email" class="form-label">Email <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" required
                                    class="form-control @error('email') is-invalid @enderror"
                                    value="{{ old('email') }}"
                                    placeholder="VD: nhanvien@company.vn"
-                                   maxlength="100">
+                                   maxlength="150">
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -293,7 +293,7 @@
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}"
                                         {{ old('department_id') == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->ten_phong_ban ?? $dept->name ?? 'Phòng ban ' . $dept->id }}
+                                        {{ $dept->name ?? 'Phòng ban ' . $dept->id }}
                                     </option>
                                 @endforeach
                             </select>
@@ -311,7 +311,7 @@
                                 @foreach($positions as $pos)
                                     <option value="{{ $pos->id }}"
                                         {{ old('position_id') == $pos->id ? 'selected' : '' }}>
-                                        {{ $pos->ten_chuc_vu ?? $pos->name ?? 'Chức vụ ' . $pos->id }}
+                                        {{ $pos->name ?? 'Chức vụ ' . $pos->id }}
                                     </option>
                                 @endforeach
                             </select>
@@ -327,11 +327,9 @@
                             </label>
                             <select id="trang_thai" name="status"
                                     class="form-select @error('status') is-invalid @enderror">
-                                <option value="">-- Chọn trạng thái --</option>
-                                <option value="Thử việc"      {{ old('status', 'Thử việc') == 'Thử việc'      ? 'selected' : '' }}>Thử việc</option>
-                                <option value="Đang làm việc" {{ old('status') == 'Đang làm việc' ? 'selected' : '' }}>Đang làm việc</option>
-                                <option value="Nghỉ phép"     {{ old('status') == 'Nghỉ phép'     ? 'selected' : '' }}>Nghỉ phép</option>
-                                <option value="Đã nghỉ việc"  {{ old('status') == 'Đã nghỉ việc'  ? 'selected' : '' }}>Đã nghỉ việc</option>
+                                @foreach(['working' => 'Đang làm việc', 'resigned' => 'Đã nghỉ việc', 'inactive' => 'Ngừng hoạt động'] as $value => $label)
+                                    <option value="{{ $value }}" {{ old('status', 'working') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
                             </select>
                             @error('status')
                                 <div class="invalid-feedback">{{ $message }}</div>

@@ -4,7 +4,7 @@
      ================================================================ --}}
 @extends('admin.layout.masterlayout')
 
-@section('title', 'Chi tiết nhân viên — ' . ($employee->ho_ten ?? 'N/A'))
+@section('title', 'Chi tiết nhân viên — ' . ($employee->full_name ?? 'N/A'))
 
 @section('styles')
 <style>
@@ -126,6 +126,15 @@
 
 @section('content')
 
+@if(session('success'))
+    <div class="alert alert-success" role="alert">{{ session('success') }}</div>
+@endif
+@if($errors->any())
+    <div class="alert alert-danger" role="alert">
+        @foreach($errors->all() as $error)<p class="mb-0">{{ $error }}</p>@endforeach
+    </div>
+@endif
+
 {{-- ===== TIÊU ĐỀ TRANG ===== --}}
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
     <div>
@@ -180,7 +189,7 @@
                 @if($position)
                 <p class="text-secondary mb-2" style="font-size:.875rem;">
                     <i class="bi bi-award me-1 text-primary"></i>
-                    {{ $position->position_id ?? $position->name ?? 'N/A' }}
+                    {{ $position->name ?? 'N/A' }}
                 </p>
                 @endif
 
@@ -188,24 +197,23 @@
                 @if($department)
                 <p class="text-secondary mb-3" style="font-size:.875rem;">
                     <i class="bi bi-diagram-3 me-1 text-primary"></i>
-                    {{ $department->department_id ?? $department->name ?? 'N/A' }}
+                    {{ $department->name ?? 'N/A' }}
                 </p>
                 @endif
 
                 {{-- Trạng thái --}}
                 @php
-                    $status = $employee->trang_thai ?? '';
+                    $status = $employee->status ?? '';
                     $badgeClass = match($status) {
-                        'Đang làm việc' => 'status-active',
-                        'Nghỉ phép'     => 'status-leave',
-                        'Đã nghỉ việc'  => 'status-resigned',
-                        'Thử việc'      => 'status-probation',
+                        'working' => 'status-active',
+                        'inactive'     => 'status-leave',
+                        'resigned'  => 'status-resigned',
                         default         => 'status-probation',
                     };
                 @endphp
                 <span class="status-badge-lg {{ $badgeClass }}">
                     <i class="bi bi-circle-fill" style="font-size:8px;"></i>
-                    {{ $status ?: 'Chưa xác định' }}
+                    {{ ['working' => 'Đang làm việc', 'resigned' => 'Đã nghỉ việc', 'inactive' => 'Ngừng hoạt động'][$employee->status] ?? '—' }}
                 </span>
 
             </div>
@@ -309,14 +317,14 @@
                 <div class="info-row">
                     <div class="info-icon"><i class="bi bi-gender-ambiguous"></i></div>
                     <div class="info-label">Giới tính</div>
-                    <div class="info-value">{{ $employee->gender ?? '—' }}</div>
+                    <div class="info-value">{{ ['male' => 'Nam', 'female' => 'Nữ', 'other' => 'Khác'][$employee->gender] ?? '—' }}</div>
                 </div>
 
                 <div class="info-row">
                     <div class="info-icon"><i class="bi bi-card-text"></i></div>
                     <div class="info-label">Số CCCD / CMND</div>
                     <div class="info-value" style="font-family:monospace;letter-spacing:.05em;">
-                        {{ $employee->cccd ?? '—' }}
+                        {{ $employee->identity_number ?? '—' }}
                     </div>
                 </div>
 
@@ -409,7 +417,7 @@
                     <div class="info-value">
                         <span class="status-badge-lg {{ $badgeClass }}">
                             <i class="bi bi-circle-fill" style="font-size:8px;"></i>
-                            {{ $employee->status ?: 'Chưa xác định' }}
+                            {{ ['working' => 'Đang làm việc', 'resigned' => 'Đã nghỉ việc', 'inactive' => 'Ngừng hoạt động'][$employee->status] ?? '—' }}
                         </span>
                     </div>
                 </div>
@@ -421,10 +429,40 @@
 
 </div>{{-- /row --}}
 
+<div class="info-card mt-4" id="create-account">
+    <div class="info-card-header">
+        <i class="bi bi-shield-person text-primary"></i>
+        <h5>Tài khoản nhân viên</h5>
+    </div>
+    <div class="info-card-body">
+        @if($employee->user)
+            <p><strong>Tên đăng nhập:</strong> {{ $employee->user->username }}</p>
+            <p><strong>Vai trò:</strong> {{ $employee->user->role?->name ?? '—' }}</p>
+            <p class="mb-0"><strong>Trạng thái:</strong>
+                {{ ['pending' => 'Chờ kích hoạt', 'active' => 'Hoạt động', 'locked' => 'Đã khóa', 'disabled' => 'Vô hiệu hóa'][$employee->user->status] ?? $employee->user->status }}
+            </p>
+        @else
+            <p>Chưa có tài khoản. Email kích hoạt sẽ được gửi tới <strong>{{ $employee->email }}</strong>. Nhân viên tự đặt mật khẩu qua liên kết có hiệu lực 24 giờ.</p>
+            <form action="{{ route('employees.account.store', $employee) }}" method="POST">
+                @csrf
+                <label for="account_username" class="form-label">Tên đăng nhập</label>
+                <input type="text" id="account_username" name="username"
+                       class="form-control @error('username') is-invalid @enderror"
+                       value="{{ old('username', $employee->employee_code) }}"
+                       maxlength="50" pattern="[A-Za-z0-9_-]+" required autocomplete="off"
+                       aria-describedby="username-help">
+                <div id="username-help" class="form-text">Tối đa 50 ký tự: chữ không dấu, số, dấu gạch dưới hoặc gạch ngang. Vai trò: Employee.</div>
+                @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <button type="submit" class="btn btn-primary mt-3">Tạo tài khoản và gửi lời mời</button>
+            </form>
+        @endif
+    </div>
+</div>
+
 {{-- ===== FOOTER ACTIONS ===== --}}
 <div class="d-flex justify-content-end gap-3 mt-4">
     <form action="{{ route('employees.destroy', $employee->id) }}" method="POST"
-          onsubmit="return confirm('Xóa nhân viên này? Thao tác không thể hoàn tác!')">
+          onsubmit="return confirm('Xóa nhân viên khỏi danh sách? Lịch sử nhân sự sẽ được giữ lại.')">
         @csrf
         @method('DELETE')
         <button type="submit" class="btn btn-outline-danger d-flex align-items-center gap-2"

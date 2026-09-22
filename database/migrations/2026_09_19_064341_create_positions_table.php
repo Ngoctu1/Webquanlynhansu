@@ -12,9 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('positions', function (Blueprint $table) {
+
             $table->id();
-            $table->string('name', 100); // Tên chức vụ (VD: Trưởng phòng, Nhân viên)
-            $table->text('description')->nullable(); // Mô tả công việc
+
+            $table->string('name', 100)->unique();
+            $table->text('description')->nullable();
+
+            $table->enum('status', [
+                'active',
+                'inactive'
+            ])->default('active');
+
             $table->timestamps();
         });
     }

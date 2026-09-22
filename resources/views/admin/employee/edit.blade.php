@@ -4,7 +4,7 @@
      ================================================================ --}}
 @extends('admin.layout.masterlayout')
 
-@section('title', 'Sửa nhân viên — ' . ($employee->ho_ten ?? 'N/A'))
+@section('title', 'Sửa nhân viên — ' . ($employee->full_name ?? 'N/A'))
 
 @section('styles')
 <style>
@@ -171,7 +171,7 @@
                             <input type="text" id="ho_ten" name="full_name"
                                    class="form-control @error('full_name') is-invalid @enderror"
                                    value="{{ old('full_name', $employee->full_name) }}"
-                                   maxlength="100" required>
+                                   maxlength="150" required>
                             @error('full_name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -194,10 +194,10 @@
                             <select id="gioi_tinh" name="gender"
                                     class="form-select @error('gender') is-invalid @enderror">
                                 <option value="">-- Chọn giới tính --</option>
-                                @foreach(['Nam', 'Nữ', 'Khác'] as $gt)
+                                @foreach(['male' => 'Nam', 'female' => 'Nữ', 'other' => 'Khác'] as $gt => $genderLabel)
                                     <option value="{{ $gt }}"
                                         {{ old('gender', $employee->gender) == $gt ? 'selected' : '' }}>
-                                        {{ $gt }}
+                                        {{ $genderLabel }}
                                     </option>
                                 @endforeach
                             </select>
@@ -208,12 +208,12 @@
 
                         {{-- CCCD --}}
                         <div class="col-12 col-md-4">
-                            <label for="cccd" class="form-label">Số CCCD / CMND</label>
-                            <input type="text" id="cccd" name="cccd"
-                                   class="form-control @error('cccd') is-invalid @enderror"
-                                   value="{{ old('cccd', $employee->cccd) }}"
+                            <label for="identity_number" class="form-label">Số CCCD / CMND</label>
+                            <input type="text" id="identity_number" name="identity_number"
+                                   class="form-control @error('identity_number') is-invalid @enderror"
+                                   value="{{ old('identity_number', $employee->identity_number) }}"
                                    maxlength="20">
-                            @error('cccd')
+                            @error('identity_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -224,7 +224,7 @@
                             <input type="text" id="so_dien_thoai" name="phone"
                                    class="form-control @error('phone') is-invalid @enderror"
                                    value="{{ old('phone', $employee->phone) }}"
-                                   maxlength="15">
+                                   maxlength="20">
                             @error('phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -232,11 +232,11 @@
 
                         {{-- Email --}}
                         <div class="col-12 col-md-8">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" id="email" name="email"
+                            <label for="email" class="form-label">Email <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" required
                                    class="form-control @error('email') is-invalid @enderror"
                                    value="{{ old('email', $employee->email) }}"
-                                   maxlength="100">
+                                   maxlength="150">
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -291,7 +291,7 @@
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}"
                                         {{ old('department_id', $employee->department_id) == $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->ten_phong_ban ?? $dept->name ?? 'Phòng ban ' . $dept->id }}
+                                        {{ $dept->name ?? 'Phòng ban ' . $dept->id }}
                                     </option>
                                 @endforeach
                             </select>
@@ -318,6 +318,16 @@
                             @enderror
                         </div>
 
+                        <div class="col-12">
+                            <label for="assignment_effective_from" class="form-label">Ngày hiệu lực điều chuyển</label>
+                            <input type="date" id="assignment_effective_from" name="assignment_effective_from"
+                                   class="form-control @error('assignment_effective_from') is-invalid @enderror"
+                                   value="{{ old('assignment_effective_from', today()->format('Y-m-d')) }}"
+                                   max="{{ today()->format('Y-m-d') }}">
+                            <div class="form-text">Chỉ áp dụng khi đổi phòng ban/chức vụ. Phải sau ngày bắt đầu phân công hiện tại và không sau hôm nay.</div>
+                            @error('assignment_effective_from')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+
                         {{-- Trạng thái --}}
                         <div class="col-12">
                             <label for="trang_thai" class="form-label">
@@ -325,12 +335,8 @@
                             </label>
                             <select id="trang_thai" name="status"
                                     class="form-select @error('status') is-invalid @enderror">
-                                <option value="">-- Chọn trạng thái --</option>
-                                @foreach(['Thử việc', 'Đang làm việc', 'Nghỉ phép', 'Đã nghỉ việc'] as $tt)
-                                    <option value="{{ $tt }}"
-                                        {{ old('status', $employee->status) == $tt ? 'selected' : '' }}>
-                                        {{ $tt }}
-                                    </option>
+                                @foreach(['working' => 'Đang làm việc', 'resigned' => 'Đã nghỉ việc', 'inactive' => 'Ngừng hoạt động'] as $value => $label)
+                                    <option value="{{ $value }}" {{ old('status', $employee->status) == $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                             @error('status')

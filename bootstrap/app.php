@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectUsersTo(function (Request $request) {
+            return match ((int) $request->user()->role_id) {
+                1, 2 => '/admin',
+                3 => '/user',
+                default => abort(403, 'Quyền truy cập không hợp lệ.'),
+            };
+        });
+
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);

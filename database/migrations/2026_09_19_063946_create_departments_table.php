@@ -13,10 +13,17 @@ return new class extends Migration
     {
         Schema::create('departments', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 100);
+
+            $table->string('name', 100)->unique();
             $table->text('description')->nullable();
-            $table->tinyInteger('status')->default(1); // 1: Hoạt động, 0: Khóa
+
+            $table->enum('status', [
+                'active',
+                'inactive'
+            ])->default('active');
             $table->timestamps();
+            // $table->tinyInteger('status')->default(1); // Cũ 1: Hoạt động, 0: Khóa
+            
         });
     }
 

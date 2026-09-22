@@ -174,6 +174,12 @@
     </div>
 @endif
 
+@if($errors->any())
+    <div class="alert alert-danger" role="alert">
+        @foreach($errors->all() as $error)<p class="mb-0">{{ $error }}</p>@endforeach
+    </div>
+@endif
+
 {{-- ===== BỘ LỌC & TÌM KIẾM ===== --}}
 <div class="filter-card">
     <form method="GET" action="{{ route('employees.index') }}" id="filter-form">
@@ -231,10 +237,9 @@
                 <select name="status" class="form-select" style="border-radius:9px;"
                         onchange="document.getElementById('filter-form').submit()">
                     <option value="">-- Tất cả --</option>
-                    <option value="Đang làm việc" {{ request('status') == 'Đang làm việc' ? 'selected' : '' }}>Đang làm việc</option>
-                    <option value="Nghỉ phép"     {{ request('status') == 'Nghỉ phép'     ? 'selected' : '' }}>Nghỉ phép</option>
-                    <option value="Thử việc"      {{ request('status') == 'Thử việc'      ? 'selected' : '' }}>Thử việc</option>
-                    <option value="Đã nghỉ việc"  {{ request('status') == 'Đã nghỉ việc'  ? 'selected' : '' }}>Đã nghỉ việc</option>
+                    <option value="working" {{ request('status') == 'working' ? 'selected' : '' }}>Đang làm việc</option>
+                    <option value="inactive"     {{ request('status') == 'inactive'     ? 'selected' : '' }}>Ngừng hoạt động</option>
+                    <option value="resigned"  {{ request('status') == 'resigned'  ? 'selected' : '' }}>Đã nghỉ việc</option>
                 </select>
             </div>
 
@@ -281,6 +286,7 @@
                     <th>Phòng ban</th>
                     <th>Chức vụ</th>
                     <th>Trạng thái</th>
+                    <th>Tài khoản</th>
                     <th style="width:110px;text-align:center;">Thao tác</th>
                 </tr>
             </thead>
@@ -325,26 +331,12 @@
 
                     {{-- Phòng ban --}}
                     <td style="font-size:.85rem;">
-                        @if($employee->department_id)
-                            @php
-                                $dept = $departments->firstWhere('id', $employee->department_id);
-                            @endphp
-                            {{  $dept->name ?? '—' }}
-                        @else
-                            <span class="text-secondary">—</span>
-                        @endif
+                        {{ $employee->department?->name ?? '—' }}
                     </td>
 
                     {{-- Chức vụ --}}
                     <td style="font-size:.85rem;">
-                        @if($employee->position_id)
-                            @php
-                                $pos = $positions->firstWhere('id', $employee->position_id);
-                            @endphp
-                            {{  $pos->name ?? '—' }}
-                        @else
-                            <span class="text-secondary">—</span>
-                        @endif
+                        {{ $employee->position?->name ?? '—' }}
                     </td>
 
                     {{-- Trạng thái --}}
@@ -352,23 +344,33 @@
                         @php
                             $status = $employee->status ?? '';
                             $badgeClass = match($status) {
-                                'Đang làm việc' => 'status-active',
-                                'Nghỉ phép'     => 'status-leave',
-                                'Đã nghỉ việc'  => 'status-resigned',
-                                'Thử việc'      => 'status-probation',
+                                'working' => 'status-active',
+                                'inactive'     => 'status-leave',
+                                'resigned'  => 'status-resigned',
                                 default         => 'status-probation',
                             };
                             $iconClass = match($status) {
-                                'Đang làm việc' => 'bi-circle-fill text-success',
-                                'Nghỉ phép'     => 'bi-circle-fill text-warning',
-                                'Đã nghỉ việc'  => 'bi-circle-fill text-danger',
+                                'working' => 'bi-circle-fill text-success',
+                                'inactive'     => 'bi-circle-fill text-warning',
+                                'resigned'  => 'bi-circle-fill text-danger',
                                 default         => 'bi-circle-fill text-primary',
                             };
                         @endphp
                         <span class="status-badge {{ $badgeClass }}">
                             <i class="bi {{ $iconClass }}"></i>
-                            {{ $status ?: 'Chưa xác định' }}
+                            {{ ['working' => 'Đang làm việc', 'resigned' => 'Đã nghỉ việc', 'inactive' => 'Ngừng hoạt động'][$employee->status] ?? '—' }}
                         </span>
+                    </td>
+
+                    <td>
+                        @if($employee->user)
+                            <strong>{{ $employee->user->username }}</strong><br>
+                            <span>{{ $employee->user->role?->name ?? '—' }}</span><br>
+                            <span>{{ ['pending' => 'Chờ kích hoạt', 'active' => 'Hoạt động', 'locked' => 'Đã khóa', 'disabled' => 'Vô hiệu hóa'][$employee->user->status] ?? $employee->user->status }}</span>
+                        @else
+                            <span class="text-secondary">Chưa có tài khoản</span><br>
+                            <a href="{{ route('employees.show', $employee) }}#create-account" class="btn btn-sm btn-outline-primary mt-1">Tạo tài khoản</a>
+                        @endif
                     </td>
 
                     {{-- Thao tác --}}
@@ -389,7 +391,7 @@
                             {{-- Xóa --}}
                             <form action="{{ route('employees.destroy', $employee->id) }}"
                                   method="POST" class="d-inline"
-                                  onsubmit="return confirmDelete('{{ addslashes($employee->full_name ?? 'nhân viên này') }}')">
+                                  onsubmit="return confirmDelete()">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="action-btn btn-delete" title="Xóa">
@@ -401,12 +403,12 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">
                             <i class="bi bi-people text-secondary"></i>
                             <p class="fw-600 mb-1" style="font-size:1rem;">Không có nhân viên nào</p>
                             <p class="text-secondary small mb-3">
-                                {{ request()->hasAny(['search','department_id','position_id','trang_thai'])
+                                {{ request()->hasAny(['search','department_id','position_id','status'])
                                     ? 'Không tìm thấy nhân viên phù hợp với bộ lọc hiện tại.'
                                     : 'Chưa có dữ liệu nhân viên trong hệ thống.' }}
                             </p>
@@ -441,8 +443,8 @@
 
 @section('scripts')
 <script>
-    function confirmDelete(name) {
-        return confirm('Bạn có chắc chắn muốn xóa nhân viên "' + name + '"?\nThao tác này không thể hoàn tác.');
+    function confirmDelete() {
+        return confirm('Xóa nhân viên khỏi danh sách? Lịch sử nhân sự sẽ được giữ lại.');
     }
 </script>
 @endsection

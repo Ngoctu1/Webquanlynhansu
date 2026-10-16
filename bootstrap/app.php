@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,12 +13,18 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(function (Request $request) {
-            return match ((int) $request->user()->role_id) {
-                1, 2 => '/admin',
-                3 => '/user',
-                default => abort(403, 'Quyền truy cập không hợp lệ.'),
-            };
+            $user = $request->user();
+            if ($user->status !== 'active' || !$user->hasRole(\App\Models\Role::HR, \App\Models\Role::DIRECTOR, \App\Models\Role::EMPLOYEE, \App\Models\Role::ADMIN)) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return route('login');
+            }
+
+            return $user->homePath();
         });
 
         $middleware->alias([

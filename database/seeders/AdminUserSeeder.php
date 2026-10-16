@@ -2,41 +2,65 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\{Department, Employee, Position, Role, User, WorkSchedule};
+use App\Services\RecordCodeService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\{DB, Hash};
 use RuntimeException;
 
 class AdminUserSeeder extends Seeder
 {
+    public const EMAIL = 'admin@hrm.com';
+    private const PASSWORD = 'Admin1234';
+
     public function run(): void
     {
-        DB::transaction(function () {
-            // Cho phép chạy riêng seeder này khi chưa có dữ liệu roles.
-            $this->call(RoleSeeder::class);
+        $this->call([RoleSeeder::class, DepartmentSeeder::class, PositionSeeder::class, WorkScheduleSeeder::class]);
+        $existing = User::with('role')->where('email', self::EMAIL)->first();
+        if ($existing && !$existing->hasRole(Role::ADMIN)) {
+            throw new RuntimeException('Email Admin đã thuộc tài khoản có vai trò khác. Seeder không tự nâng quyền tài khoản đó.');
+        }
+        $employee = $existing?->employee ?? Employee::where('personal_email', self::EMAIL)->first();
 
-            if (!DB::table('roles')->where('id', 1)->where('name', 'Admin')->exists()) {
-                throw new RuntimeException('Role Admin phải có id = 1. Vui lòng kiểm tra dữ liệu roles.');
+        $save = function (?string $code = null) use ($employee): Employee {
+            $role = Role::where('name', Role::ADMIN)->lockForUpdate()->firstOrFail();
+            $user = User::with('role')->where('email', self::EMAIL)->lockForUpdate()->first();
+            if ($user && !$user->hasRole(Role::ADMIN)) {
+                throw new RuntimeException('Email Admin đã thuộc tài khoản có vai trò khác.');
             }
 
-            $admin = User::where('username', 'admin')->lockForUpdate()->first()
-                ?? new User(['username' => 'admin']);
-
-            // Không biến tài khoản nhân viên trùng username thành quản trị viên.
-            if ($admin->exists && (int) $admin->role_id !== 1) {
-                throw new RuntimeException('Username admin đang thuộc tài khoản không phải Admin.');
+            $employeeId = $user?->employee_id ?? $employee?->id;
+            if ($employeeId) {
+                $profile = Employee::lockForUpdate()->findOrFail($employeeId);
+                $linked = $profile->user()->lockForUpdate()->first();
+                if ($linked && $linked->id !== $user?->id) {
+                    throw new RuntimeException('Hồ sơ Admin đã liên kết với tài khoản khác.');
+                }
+                $profile->update(['employment_status' => 'working', 'hire_date' => $profile->hire_date ?? today()]);
+            } else {
+                $profile = Employee::create([
+                    'employee_code' => $code, 'full_name' => 'Quản trị hệ thống', 'personal_email' => self::EMAIL,
+                    'department_id' => Department::where('code', 'HR')->where('status', 'active')->firstOrFail()->id,
+                    'position_id' => Position::where('code', 'HEAD')->where('status', 'active')->firstOrFail()->id,
+                    'work_schedule_id' => WorkSchedule::where('status', 'active')->orderBy('id')->firstOrFail()->id,
+                    'employment_status' => 'working', 'hire_date' => today(),
+                ]);
             }
 
-            // Tài khoản mẫu cho môi trường phát triển. Chạy lại sẽ đặt lại mật khẩu.
-            // Tài khoản mới có employee_id = NULL theo schema; giữ liên kết nếu đã tồn tại.
-            $admin->forceFill([
-                'role_id' => 1,
-                'password' => Hash::make('123456'),
-                'status' => 'active',
-                'password_changed_at' => now(),
-                'remember_token' => null,
+            $user ??= new User(['employee_id' => $profile->id]);
+            $user->forceFill([
+                'role_id' => $role->id, 'email' => self::EMAIL,
+                'password' => $user->password && Hash::check(self::PASSWORD, $user->password)
+                    ? $user->password : Hash::make(self::PASSWORD),
+                'status' => 'active', 'activated_at' => $user->activated_at ?? now(),
+                'activation_token_hash' => null, 'activation_expires_at' => null, 'remember_token' => null,
             ])->save();
-        });
+            return $profile;
+        };
+
+        if ($employee) { DB::transaction(fn () => $save(), 3); }
+        else { app(RecordCodeService::class)->employee($save); }
+
+        $this->command?->info('Đã cập nhật tài khoản Admin: '.self::EMAIL);
     }
 }

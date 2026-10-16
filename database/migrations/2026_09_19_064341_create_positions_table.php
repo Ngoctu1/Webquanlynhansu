@@ -1,35 +1,29 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('positions', function (Blueprint $table) {
-
-            $table->id();
-
-            $table->string('name', 100)->unique();
-            $table->text('description')->nullable();
-
-            $table->enum('status', [
-                'active',
-                'inactive'
-            ])->default('active');
-
-            $table->timestamps();
-        });
+        // Exact MySQL/MariaDB DDL from the approved ten-table schema.
+        DB::unprepared(<<<'SQL'
+CREATE TABLE `positions` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `code` VARCHAR(20) NOT NULL,
+    `name` VARCHAR(120) NOT NULL,
+    `description` TEXT NULL,
+    `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
+    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_positions_code` (`code`)
+) ENGINE=InnoDB;
+SQL);
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('positions');

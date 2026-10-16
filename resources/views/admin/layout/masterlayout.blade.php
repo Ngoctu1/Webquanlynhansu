@@ -187,6 +187,7 @@
 
         {{-- Page Content --}}
         <div id="page-content">
+            @include('admin.partial.alerts')
             @yield('content')
         </div>
 

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\PayrollDetail;
@@ -7,59 +6,10 @@ use Illuminate\Http\Request;
 
 class PayrollDetailController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(PayrollDetail $payrollDetail)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(PayrollDetail $payrollDetail)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, PayrollDetail $payrollDetail)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(PayrollDetail $payrollDetail)
-    {
-        //
+        $details = PayrollDetail::with(['period', 'contract'])->where('employee_id', $request->user()->employee_id)
+            ->whereHas('period', fn ($q) => $q->where('status', 'published'))->latest('id')->paginate(15);
+        return view('user.payroll.index', compact('details'));
     }
 }

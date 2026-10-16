@@ -21,127 +21,18 @@
     {{-- ===== NAVIGATION MENU ===== --}}
     <div class="sidebar-scroll">
         <ul class="sidebar-menu">
-
-            {{-- ---- Dashboard ---- --}}
-            <li class="sidebar-label">TỔNG QUAN</li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/dashboard') }}" class="nav-link active" id="menu-dashboard">
-                    <i class="nav-icon bi bi-speedometer2"></i>
-                    <span class="nav-text">Dashboard</span>
-                </a>
-            </li>
-
-            {{-- ---- Quản lý nhân viên (có submenu) ---- --}}
-            <li class="sidebar-label">QUẢN LÝ NHÂN SỰ</li>
-
-            <li class="nav-item has-submenu">
-                <a href="#submenu-nhanvien" class="nav-link nav-link-parent"
-                   data-bs-toggle="collapse" aria-expanded="false" id="menu-nhanvien">
-                    <i class="nav-icon bi bi-people"></i>
-                    <span class="nav-text">Quản lý nhân viên</span>
-                    <i class="nav-arrow bi bi-chevron-right"></i>
-                </a>
-                <ul class="collapse submenu" id="submenu-nhanvien">
-                    <li>
-                        <a href="{{ route('employees.index') }}" class="submenu-link" id="menu-ds-nhanvien">
-                            <i class="bi bi-list-ul"></i> Danh sách nhân viên
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('employees.create') }}" class="submenu-link" id="menu-them-nhanvien">
-                            <i class="bi bi-person-plus"></i> Thêm nhân viên
-                        </a>
-                    </li>
-                </ul>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/phong-ban') }}" class="nav-link" id="menu-phongban">
-                    <i class="nav-icon bi bi-diagram-3"></i>
-                    <span class="nav-text">Phòng ban</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/chuc-vu') }}" class="nav-link" id="menu-chucvu">
-                    <i class="nav-icon bi bi-award"></i>
-                    <span class="nav-text">Chức vụ</span>
-                </a>
-            </li>
-
-            {{-- ---- Chấm công & Nghỉ phép ---- --}}
-            <li class="sidebar-label">THỜI GIAN CÔNG VIỆC</li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/cham-cong') }}" class="nav-link" id="menu-chamcong">
-                    <i class="nav-icon bi bi-clock-history"></i>
-                    <span class="nav-text">Chấm công</span>
-                    <span class="nav-badge bg-warning">Mới</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/nghi-phep') }}" class="nav-link" id="menu-nghiphep">
-                    <i class="nav-icon bi bi-calendar-check"></i>
-                    <span class="nav-text">Nghỉ phép</span>
-                    <span class="nav-badge bg-danger">3</span>
-                </a>
-            </li>
-
-            {{-- ---- Tài chính ---- --}}
-            <li class="sidebar-label">TÀI CHÍNH</li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/luong-thuong') }}" class="nav-link" id="menu-luong">
-                    <i class="nav-icon bi bi-cash-coin"></i>
-                    <span class="nav-text">Lương &amp; thưởng</span>
-                </a>
-            </li>
-
-            {{-- ---- Hợp đồng & Đánh giá ---- --}}
-            <li class="sidebar-label">HỒ SƠ & ĐÁNH GIÁ</li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/hop-dong') }}" class="nav-link" id="menu-hopdong">
-                    <i class="nav-icon bi bi-file-earmark-text"></i>
-                    <span class="nav-text">Hợp đồng lao động</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/danh-gia') }}" class="nav-link" id="menu-danhgia">
-                    <i class="nav-icon bi bi-star-half"></i>
-                    <span class="nav-text">Đánh giá nhân viên</span>
-                </a>
-            </li>
-
-            {{-- ---- Báo cáo & Quản trị ---- --}}
-            <li class="sidebar-label">HỆ THỐNG</li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/bao-cao') }}" class="nav-link" id="menu-baocao">
-                    <i class="nav-icon bi bi-bar-chart-line"></i>
-                    <span class="nav-text">Báo cáo thống kê</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/tai-khoan') }}" class="nav-link" id="menu-taikhoan">
-                    <i class="nav-icon bi bi-shield-person"></i>
-                    <span class="nav-text">Quản lý tài khoản</span>
-                </a>
-            </li>
-
-            <li class="nav-item">
-                <a href="{{ url('/admin/cai-dat') }}" class="nav-link" id="menu-caidat">
-                    <i class="nav-icon bi bi-gear"></i>
-                    <span class="nav-text">Cài đặt</span>
-                </a>
-            </li>
-
-        </ul>
-    </div>{{-- /sidebar-scroll --}}
+<li class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}"><i class="nav-icon bi bi-speedometer2"></i><span class="nav-text">Tổng quan</span></a></li>
+<li class="nav-item"><a href="{{ route('employees.index') }}" class="nav-link {{ request()->routeIs('employees.*') ? 'active' : '' }}"><i class="nav-icon bi bi-people"></i><span class="nav-text">Nhân viên</span></a></li>
+<li class="nav-item"><a href="{{ route('departments.index') }}" class="nav-link {{ request()->routeIs('departments.*') ? 'active' : '' }}"><i class="nav-icon bi bi-diagram-3"></i><span class="nav-text">Phòng ban</span></a></li>
+<li class="nav-item"><a href="{{ route('positions.index') }}" class="nav-link {{ request()->routeIs('positions.*') ? 'active' : '' }}"><i class="nav-icon bi bi-award"></i><span class="nav-text">Chức vụ</span></a></li>
+<li class="nav-item"><a href="{{ route('contracts.index') }}" class="nav-link {{ request()->routeIs('contracts.*') ? 'active' : '' }}"><i class="nav-icon bi bi-file-earmark-text"></i><span class="nav-text">Hợp đồng</span></a></li>
+<li class="nav-item"><a href="{{ route('attendances.index') }}" class="nav-link {{ request()->routeIs('attendances.*') ? 'active' : '' }}"><i class="nav-icon bi bi-clock-history"></i><span class="nav-text">Chấm công</span></a></li>
+<li class="nav-item"><a href="{{ route('payrolls.index') }}" class="nav-link {{ request()->routeIs('payrolls.*') ? 'active' : '' }}"><i class="nav-icon bi bi-cash-coin"></i><span class="nav-text">Bảng lương</span></a></li>
+<li class="nav-item"><a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="nav-icon bi bi-shield-person"></i><span class="nav-text">Tài khoản</span></a></li>
+<li class="nav-item"><a href="{{ route('audit.index') }}" class="nav-link {{ request()->routeIs('audit.*') ? 'active' : '' }}"><i class="nav-icon bi bi-journal-text"></i><span class="nav-text">Nhật ký thao tác</span></a></li>
+<li class="nav-item"><a href="{{ route('schedules.index') }}" class="nav-link"><i class="nav-icon bi bi-calendar-week"></i><span class="nav-text">Lịch làm việc</span></a></li>
+<li class="sidebar-label">CÁ NHÂN</li><li class="nav-item"><a class="nav-link" href="{{ route('user.dashboard') }}"><i class="nav-icon bi bi-person"></i><span class="nav-text">Hồ sơ của tôi</span></a></li>
+</ul></div>
 
     {{-- ===== SIDEBAR FOOTER ===== --}}
     <div class="sidebar-footer">

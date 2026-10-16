@@ -1,23 +1,15 @@
 <?php
-
 namespace Database\Seeders;
 
-use Illuminate\Support\Facades\DB;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $timestamp = now();
-
-        DB::table('roles')->upsert([
-            ['id' => 1, 'name' => 'Admin', 'description' => 'Admin quản trị hệ thống', 'created_at' => $timestamp, 'updated_at' => $timestamp],
-            ['id' => 2, 'name' => 'HR', 'description' => 'Nhân sự', 'created_at' => $timestamp, 'updated_at' => $timestamp],
-            ['id' => 3, 'name' => 'Employee', 'description' => 'Nhân viên', 'created_at' => $timestamp, 'updated_at' => $timestamp],
-        ], ['id'], ['name', 'description', 'updated_at']);
+        foreach ([Role::HR => 'Nhân sự', Role::DIRECTOR => 'Giám đốc và quản lý nhân sự', Role::EMPLOYEE => 'Nhân viên', Role::ADMIN => 'Quản trị toàn hệ thống'] as $name => $description) {
+            Role::updateOrCreate(['name' => $name], ['description' => $description]);
+        }
     }
 }

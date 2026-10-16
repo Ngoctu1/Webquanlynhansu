@@ -1,37 +1,23 @@
 <?php
-
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Models\{Employee, Role};
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
-/**
- * @extends Factory<User>
- */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
-
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        
+        return [
+            'employee_id' => Employee::factory(),
+            'role_id' => fn () => Role::firstOrCreate(['name' => Role::EMPLOYEE])->id,
+            'email' => fake()->unique()->safeEmail(),
+            'password' => null, 'status' => 'pending_reset',
+        ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    public function active(string $password): static
     {
-        
+        return $this->state(fn () => ['password' => $password, 'status' => 'active', 'activated_at' => now()]);
     }
 }

@@ -1,144 +1,69 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Mail\AccountInvitationMail;
-use App\Models\AuditLog;
-use App\Models\Employee;
-use App\Models\User;
-use Illuminate\Database\QueryException;
-use Illuminate\Http\Request;
+use App\Http\Requests\{SendAccountInvitationRequest, UpdateUserStatusRequest, UpdateUserRoleRequest};
+
+use App\Models\{Employee, Role, User};
+use App\Services\{AccountInvitationService, AuditService};
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $users = User::with(['employee', 'role'])->latest('id')->paginate(15);
+        $roles = Role::whereIn('name', [Role::HR, Role::DIRECTOR, Role::EMPLOYEE, Role::ADMIN])->orderBy('id')->get();
+        return view('admin.user.index', compact('users', 'roles'));
+    }
+    public function store(SendAccountInvitationRequest $request, Employee $employee, AccountInvitationService $service)
+    {
+        $sent = $service->send($request->user(), $employee);
+        return redirect()->route('employees.show', $employee)->with($sent ? 'success' : 'warning',
+            $sent ? 'Máy chủ gửi mail đã tiếp nhận lời mời. Nhân viên vui lòng kiểm tra hộp thư và thư rác.' : 'Tài khoản hoặc lời mời đã tồn tại. Không gửi thêm email.');
+    }
+    public function updateStatus(UpdateUserStatusRequest $request, User $user)
+    {
+        $actor = $request->user();
+        abort_unless($actor->canManageHrm(), 403);
+        $data = $request->validated();
+        DB::transaction(function () use ($actor, $user, $data) {
+            Role::where('name', Role::ADMIN)->lockForUpdate()->firstOrFail();
+            $actor = $actor->fresh('role');
+            abort_unless($actor->status === 'active' && $actor->canManageHrm(), 403);
+            $user = User::lockForUpdate()->findOrFail($user->id);
+            abort_unless($actor->hasRole(Role::ADMIN) || $user->hasRole(Role::EMPLOYEE), 403);
+            if ($user->id === $actor->id && $data['status'] === 'locked') {
+                throw ValidationException::withMessages(['status' => 'Không thể tự khóa tài khoản đang sử dụng.']);
+            }
+            if (!$user->activated_at || !$user->password || $user->status === 'pending_reset') {
+                throw ValidationException::withMessages(['status' => 'Tài khoản chưa kích hoạt không thể mở khóa.']);
+            }
+            $old = $user->getAttributes();
+            $user->forceFill([...$data, 'remember_token' => null])->save();
+            AuditService::record($data['status'] === 'locked' ? 'USER_LOCKED' : 'USER_UNLOCKED', $user, $old);
+        }, 3);
+        return back()->with('success', 'Đã cập nhật trạng thái tài khoản.');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function updateRole(UpdateUserRoleRequest $request, User $user)
     {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request, Employee $employee)
-    {
-        abort_unless($request->user()?->status === 'active' &&
-            in_array((int) $request->user()->role_id, [1, 2], true), 403);
-
-        $validated = $request->validate([
-            'username' => ['required', 'string', 'max:50', 'alpha_dash:ascii', 'unique:users,username'],
-            'password' => ['prohibited'],
-            'password_confirmation' => ['prohibited'],
-            'role_id' => ['prohibited'],
-        ]);
-
-        try {
-            DB::transaction(function () use ($request, $employee, $validated) {
-                // Khóa nhân viên để hai yêu cầu không đồng thời tạo hai tài khoản.
-                $employee = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
-                if ($employee->user()->exists()) {
-                    throw ValidationException::withMessages(['account' => 'Nhân viên đã có tài khoản.']);
-                }
-
-                $user = User::create([
-                    'employee_id' => $employee->id,
-                    'role_id' => 3,
-                    'username' => $validated['username'],
-                    'password' => null,
-                    'status' => 'pending',
-                ]);
-                $token = Str::random(64);
-                $invitation = $user->invitations()->create([
-                    'token_hash' => hash('sha256', $token),
-                    'expires_at' => now()->addHours(24),
-                    'created_by' => $request->user()->id,
-                ]);
-
-                foreach ([$user, $invitation] as $entity) {
-                    $fields = $entity instanceof User
-                        ? ['employee_id', 'role_id', 'username', 'status']
-                        : ['user_id', 'expires_at', 'created_by'];
-                    AuditLog::create([
-                        'actor_user_id' => $request->user()->id,
-                        'action' => 'CREATE',
-                        'entity_type' => get_class($entity),
-                        'entity_id' => $entity->id,
-                        'old_values' => null,
-                        'new_values' => $entity->only($fields),
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'created_at' => now(),
-                    ]);
-                }
-
-                try {
-                    // Gửi đồng bộ: lỗi gửi mail sẽ rollback toàn bộ transaction.
-                    Mail::to($employee->email)->send(new AccountInvitationMail(
-                        $employee->full_name,
-                        $user->username,
-                        route('account.activate', ['token' => $token]),
-                        $invitation->expires_at->format('d/m/Y H:i T'),
-                    ));
-                } catch (\Throwable $exception) {
-                    // Không log exception mail vì có thể chứa toàn bộ link/token.
-                    throw ValidationException::withMessages([
-                        'account' => 'Không gửi được email kích hoạt. Tài khoản chưa được tạo; vui lòng thử lại hoặc kiểm tra cấu hình mail.',
-                    ]);
-                }
-            });
-        } catch (QueryException $exception) {
-            throw ValidationException::withMessages([
-                'account' => 'Không thể tạo tài khoản. Vui lòng kiểm tra tên đăng nhập, role Employee và thử lại.',
-            ]);
-        }
-
-        return redirect()->route('employees.show', $employee)
-            ->with('success', 'Đã tạo tài khoản chờ kích hoạt và gửi email tới nhân viên.');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        abort_unless($request->user()->hasRole(Role::ADMIN), 403);
+        $data = $request->validated();
+        DB::transaction(function () use ($request, $user, $data) {
+            // Serialize privilege changes and recheck the actor after a concurrent demotion.
+            Role::where('name', Role::ADMIN)->lockForUpdate()->firstOrFail();
+            $actor = $request->user()->fresh('role');
+            abort_unless($actor->status === 'active' && $actor->hasRole(Role::ADMIN), 403);
+            $user = User::lockForUpdate()->findOrFail($user->id);
+            if ((int) $user->role_id === (int) $data['role_id']) { return; }
+            if ($user->id === $request->user()->id) {
+                throw ValidationException::withMessages(['role_id' => 'Không thể tự đổi vai trò của tài khoản đang sử dụng.']);
+            }
+            $old = $user->getAttributes();
+            $user->forceFill(['role_id' => $data['role_id'], 'remember_token' => null])->save();
+            AuditService::record('USER_ROLE_UPDATED', $user, $old);
+        }, 3);
+        return back()->with('success', 'Đã cập nhật vai trò tài khoản.');
     }
 }

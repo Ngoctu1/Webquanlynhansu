@@ -1,38 +1,14 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <title>Kích hoạt tài khoản - Quản lý Nhân sự</title>
-    <style>
-        * { box-sizing: border-box; }
-        body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:#f8fafc; color:#1e293b; font-family:Arial,sans-serif; }
-        main { width:100%; max-width:460px; padding:32px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; }
-        h1 { font-size:1.4rem; } p { line-height:1.6; } label { display:block; margin:18px 0 8px; }
-        input, button { width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; font-size:1rem; }
-        button { margin-top:24px; background:#2563eb; color:#fff; cursor:pointer; }
-        .errors { padding:12px; background:#fee2e2; color:#991b1b; border-radius:8px; } small { color:#475569; }
-    </style>
-</head>
-<body>
-    <main>
-        <h1>Kích hoạt tài khoản HRM</h1>
-        <p>Xin chào {{ $invitation->user->employee->full_name }}.<br>Tên đăng nhập: <strong>{{ $invitation->user->username }}</strong></p>
-        @if($errors->any())
-            <div class="errors" role="alert">
-                @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
-            </div>
-        @endif
-        <form method="POST" action="{{ route('account.activate.submit', ['token' => $token]) }}">
-            @csrf
-            <label for="password">Mật khẩu</label>
-            <input type="password" id="password" name="password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus aria-describedby="password-help">
-            <small id="password-help">12–72 ký tự, gồm chữ hoa, chữ thường và số.</small>
-            <label for="password_confirmation">Xác nhận mật khẩu</label>
-            <input type="password" id="password_confirmation" name="password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
-            <button type="submit">Đặt mật khẩu và kích hoạt</button>
-        </form>
-    </main>
-</body>
-</html>
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer">
+<title>Kích hoạt tài khoản HRM</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head>
+<body class="bg-light"><main class="container py-5" style="max-width:520px"><div class="card p-4 shadow-sm">
+<h1 class="h4">Kích hoạt tài khoản</h1><p>{{ $user->email }}</p>
+@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+<form method="POST" action="{{ route('account.activate.submit', ['token' => $token]) }}">@csrf
+<label for="password" class="form-label">Mật khẩu (ít nhất 8 ký tự, tối đa 72 byte; gồm chữ hoa, chữ thường và số)</label>
+<input class="form-control mb-3" type="password" id="password" name="password" minlength="8" maxlength="72" autocomplete="new-password" required>
+<label for="password_confirmation" class="form-label">Nhập lại mật khẩu</label>
+<input class="form-control mb-3" type="password" id="password_confirmation" name="password_confirmation" minlength="8" maxlength="72" autocomplete="new-password" required>
+<button class="btn btn-primary">Kích hoạt tài khoản</button>
+</form></div></main></body></html>

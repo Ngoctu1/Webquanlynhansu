@@ -85,13 +85,13 @@
             @csrf
             
             <div class="mb-3">
-                <label for="username" class="form-label fw-semibold" style="font-size: 0.875rem; color: #475569;">Username</label>
+                <label for="email" class="form-label fw-semibold" style="font-size: 0.875rem; color: #475569;">Email</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light text-secondary border-end-0" style="border-radius: 8px 0 0 8px;">
                         <i class="bi bi-person"></i>
                     </span>
-                    <input type="text" id="username" name="username" class="form-control border-start-0 ps-0" 
-                           placeholder="Nhập tên đăng nhập" value="{{ old('username') }}" 
+                    <input type="email" id="email" name="email" class="form-control border-start-0 ps-0" 
+                           placeholder="Nhập email đăng nhập" value="{{ old('email') }}" maxlength="255" autocomplete="email"
                            style="border-radius: 0 8px 8px 0;" required autofocus>
                 </div>
             </div>
@@ -102,14 +102,14 @@
                     <span class="input-group-text bg-light text-secondary border-end-0" style="border-radius: 8px 0 0 8px;">
                         <i class="bi bi-lock"></i>
                     </span>
-                    <input type="password" id="password" name="password" class="form-control border-start-0 ps-0" 
+                    <input type="password" id="password" name="password" autocomplete="current-password" class="form-control border-start-0 ps-0"
                            placeholder="Nhập mật khẩu" style="border-radius: 0 8px 8px 0;" required>
                 </div>
             </div>
 
             <div class="mb-4 d-flex justify-content-between align-items-center">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
                     <label class="form-check-label text-secondary" for="remember" style="font-size: 0.875rem;">
                         Ghi nhớ đăng nhập
                     </label>

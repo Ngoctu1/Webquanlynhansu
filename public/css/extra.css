@@ -1,0 +1,374 @@
+/*
+ * extra.css – Các điều chỉnh bổ sung và tinh chỉnh giao diện
+ */
+
+/* ===================================================
+   TĂNG KÍCH THƯỚC CHỮ TOÀN BỘ HỆ THỐNG (TYPOGRAPHY)
+   =================================================== */
+
+body {
+    font-size: 15px !important;
+    line-height: 1.6;
+}
+
+/* Sidebar & Navigation */
+.sidebar {
+    width: 260px !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 26px 18px 24px 20px !important;
+}
+
+/* Ngăn các phần tử bên trong bị co ép (flex-shrink) khi nội dung dài */
+.sidebar .brand,
+.sidebar .workspace-label,
+.sidebar .nav-label,
+.sidebar .sidebar-nav,
+.sidebar .sidebar-note,
+.sidebar .sidebar-user {
+    flex-shrink: 0;
+}
+
+/* Tinh chỉnh khoảng cách thoáng hơn nhưng gọn gàng */
+.workspace-label {
+    margin: 20px 0 18px !important;
+}
+
+.sidebar-nav {
+    margin-bottom: 20px !important;
+}
+
+.sidebar-nav > a {
+    flex-shrink: 0;
+}
+
+/* Tuỳ biến thanh cuộn (scrollbar) tinh tế theo theme cho sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(227, 239, 175, 0.35); /* tone màu lime chủ đạo của theme */
+    border-radius: 8px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(227, 239, 175, 0.7);
+}
+
+/* Hỗ trợ Firefox */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(227, 239, 175, 0.35) rgba(0, 0, 0, 0.15);
+}
+
+.app-shell {
+    margin-left: 260px !important;
+}
+
+.brand {
+    font-size: 28px !important;
+}
+
+.brand-caption {
+    font-size: 9.5px !important;
+}
+
+.workspace-label {
+    font-size: 13px !important;
+}
+
+.nav-label {
+    font-size: 11px !important;
+    letter-spacing: 1.2px;
+}
+
+.sidebar-nav > a {
+    font-size: 14px !important;
+    padding: 11px 14px !important;
+}
+
+.sidebar-nav > a i {
+    font-size: 18px !important;
+}
+
+.sidebar-note strong {
+    font-size: 13px !important;
+}
+
+.sidebar-note p {
+    font-size: 12px !important;
+    line-height: 1.7 !important;
+}
+
+.sidebar-user strong {
+    font-size: 13px !important;
+}
+
+.sidebar-user small {
+    font-size: 11.5px !important;
+}
+
+/* Topbar */
+.topbar {
+    font-size: 14px !important;
+    min-height: 72px !important;
+}
+
+.today-label {
+    font-size: 13px !important;
+}
+
+.role-pill {
+    font-size: 12px !important;
+    padding: 6px 14px !important;
+}
+
+/* Headings & Kickers */
+.section-kicker {
+    font-size: 11px !important;
+    letter-spacing: 1.5px !important;
+}
+
+.page-heading h1 {
+    font-size: 30px !important;
+}
+
+.page-heading p {
+    font-size: 14px !important;
+}
+
+/* Banner */
+.banner-tag {
+    font-size: 11px !important;
+}
+
+.overview-banner h2 {
+    font-size: 28px !important;
+}
+
+.overview-banner p {
+    font-size: 13.5px !important;
+}
+
+.overview-banner a {
+    font-size: 13px !important;
+}
+
+/* Stat Cards */
+.stat-top {
+    font-size: 13.5px !important;
+}
+
+.stat-top i {
+    font-size: 19px !important;
+}
+
+.stat-card strong {
+    font-size: 36px !important;
+}
+
+.stat-card small {
+    font-size: 11.5px !important;
+}
+
+/* Panels & Tables */
+.panel-heading h2 {
+    font-size: 17.5px !important;
+}
+
+.panel-heading p {
+    font-size: 12.5px !important;
+}
+
+.text-link {
+    font-size: 12.5px !important;
+}
+
+.count-pill {
+    font-size: 11.5px !important;
+    padding: 3px 8px !important;
+}
+
+.table {
+    font-size: 13.5px !important;
+}
+
+.table thead th {
+    font-size: 11px !important;
+    letter-spacing: 0.8px !important;
+    padding-top: 13px !important;
+    padding-bottom: 13px !important;
+}
+
+.person-cell a {
+    font-size: 14px !important;
+}
+
+.person-cell small {
+    font-size: 11.5px !important;
+}
+
+/* Badges & Status */
+.status-badge {
+    font-size: 11.5px !important;
+    padding: 5px 10px !important;
+}
+
+/* Forms & Inputs */
+.form-label {
+    font-size: 13.5px !important;
+}
+
+.form-control, 
+.form-select {
+    font-size: 14px !important;
+    min-height: 44px !important;
+}
+
+.form-text {
+    font-size: 12px !important;
+}
+
+.form-section h2 {
+    font-size: 18px !important;
+}
+
+.form-section p {
+    font-size: 13px !important;
+}
+
+/* Buttons */
+.btn {
+    font-size: 13px !important;
+    padding: 9px 18px !important;
+}
+
+.btn-sm {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+}
+
+/* Details & Info */
+.detail-grid dt {
+    font-size: 11.5px !important;
+}
+
+.detail-grid dd {
+    font-size: 14px !important;
+}
+
+.detail-header h2 {
+    font-size: 22px !important;
+}
+
+.detail-header p {
+    font-size: 13px !important;
+}
+
+.info-strip {
+    font-size: 13px !important;
+}
+
+/* Pagination & Footer */
+.pagination {
+    --bs-pagination-font-size: 13px;
+}
+
+.pagination-wrap p {
+    font-size: 12px !important;
+}
+
+.app-footer {
+    font-size: 12px !important;
+}
+
+/* Login Page Typography */
+.login-story .eyebrow {
+    font-size: 11px !important;
+}
+
+.login-story p {
+    font-size: 14px !important;
+}
+
+.login-story > small {
+    font-size: 11px !important;
+}
+
+.login-form > p {
+    font-size: 14px !important;
+}
+
+.login-access {
+    font-size: 12px !important;
+}
+
+.login-footer {
+    font-size: 11.5px !important;
+}
+
+/* ===================================================
+   CÁC TIỆN ÍCH KHÁC
+   =================================================== */
+
+/* empty-state với icon thay vì span */
+.empty-state i {
+    display: inline-grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #eff4eb;
+    color: #8fa07d;
+    font-size: 24px;
+}
+
+.empty-state h5 {
+    font-size: 15px !important;
+}
+
+.empty-state p {
+    font-size: 13px !important;
+}
+
+/* skip-link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--teal-dark);
+    color: white;
+    padding: 8px 12px;
+    z-index: 9999;
+    border-radius: 0 0 8px 0;
+}
+.skip-link:focus { top: 0; }
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .sidebar.offcanvas-lg {
+        width: 270px !important;
+    }
+    .app-shell {
+        margin-left: 0 !important;
+    }
+}
+
+@media (min-width: 992px) {
+    .offcanvas-lg.offcanvas-start {
+        transform: none !important;
+        visibility: visible !important;
+        position: fixed !important;
+    }
+}

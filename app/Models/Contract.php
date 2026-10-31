@@ -9,7 +9,7 @@ class Contract extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['contract_code', 'employee_id', 'previous_contract_id', 'contract_type', 'signed_date', 'effective_from', 'effective_to', 'base_salary', 'salary_coefficient', 'allowance', 'status', 'created_by', 'submitted_by', 'submitted_at', 'approved_by', 'approved_at', 'rejection_reason'];
+    protected $fillable = ['contract_code', 'employee_id', 'previous_contract_id', 'contract_type', 'signed_date', 'effective_from', 'effective_to', 'base_salary', 'salary_coefficient', 'allowance', 'status', 'created_by', 'submitted_by', 'submitted_at', 'approved_by', 'approved_at', 'rejection_reason', 'signed_document_path'];
 
     public function scopeEffectiveOn($query, $date)
     {
@@ -28,5 +28,4 @@ class Contract extends Model
     public function creator() { return $this->belongsTo(User::class, 'created_by'); }
     public function submitter() { return $this->belongsTo(User::class, 'submitted_by'); }
     public function approver() { return $this->belongsTo(User::class, 'approved_by'); }
-    public function payrollDetails() { return $this->hasMany(PayrollDetail::class); }
 }

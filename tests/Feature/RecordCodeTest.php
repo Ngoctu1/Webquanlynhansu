@@ -22,7 +22,7 @@ class RecordCodeTest extends TestCase
             || !in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
             $this->markTestSkipped('Use a separately prepared MySQL/MariaDB test database. No migrations or resets are run here.');
         }
-        if (!Schema::hasTable('contracts') || !Schema::hasTable('work_schedules')) {
+        if (!Schema::hasTable('contracts') || !Schema::hasTable('employees')) {
             $this->markTestSkipped('Prepare the current schema first.');
         }
         if (Employee::where('employee_code', 'regexp', '^NV[0-9]{3}$')->exists()
@@ -32,8 +32,8 @@ class RecordCodeTest extends TestCase
         DB::beginTransaction();
         $this->transactionStarted = true;
         $role = Role::firstOrCreate(['name' => Role::HR]);
-        $this->hr = User::factory()->active('Testing123')->create(['role_id' => $role->id]);
-        $this->template = Employee::factory()->create();
+        $this->hr = User::factory()->for(Employee::factory()->state(['employee_code' => 'TEST-HR']))->active('Testing123')->create(['role_id' => $role->id]);
+        $this->template = Employee::factory()->create(['employee_code' => 'TEST-TEMPLATE']);
         $this->actingAs($this->hr);
     }
 
@@ -48,7 +48,7 @@ class RecordCodeTest extends TestCase
         return [
             'full_name' => 'Nhân viên kiểm thử', 'personal_email' => $email,
             'department_id' => $this->template->department_id, 'position_id' => $this->template->position_id,
-            'work_schedule_id' => $this->template->work_schedule_id, 'employment_status' => 'working',
+            'employment_status' => 'working',
         ];
     }
 

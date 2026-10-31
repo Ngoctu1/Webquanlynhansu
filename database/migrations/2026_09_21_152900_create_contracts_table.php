@@ -29,6 +29,7 @@ CREATE TABLE `contracts` (
     `approved_by` BIGINT UNSIGNED NULL,
     `approved_at` DATETIME NULL,
     `rejection_reason` TEXT NULL,
+    `signed_document_path` VARCHAR(255) NULL,
     `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),

@@ -5,12 +5,18 @@
         </button>
         <nav aria-label="Đường dẫn trang">
             <ol class="portal-breadcrumb">
-                <li class="d-none d-md-block"><a href="{{ route('user.attendances') }}">Cổng nhân viên</a></li>
+                <li class="d-none d-md-block"><a href="{{ route('user.dashboard') }}">Cổng nhân viên</a></li>
                 <li class="d-none d-md-block" aria-hidden="true"><i class="bi bi-chevron-right" style="font-size: .6rem;"></i></li>
                 <li aria-current="page">@yield('title', 'Hồ sơ của tôi')</li>
             </ol>
         </nav>
     </div>
+    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        @if(auth()->user()->hasRole('HR', 'Director'))
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" aria-label="Quay lại quản trị" title="Quay lại quản trị">
+                <i class="bi bi-grid" aria-hidden="true"></i><span class="d-none d-lg-inline">Quay lại quản trị</span>
+            </a>
+        @endif
     <div class="dropdown flex-shrink-0">
         <button class="portal-account-button" type="button" id="portalAccountMenu" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở menu tài khoản của {{ $portalName }}">
             <span class="portal-avatar" aria-hidden="true">{{ $portalInitials }}</span>
@@ -28,7 +34,7 @@
             <hr class="dropdown-divider">
             <a class="dropdown-item" href="{{ route('user.dashboard') }}"><i class="bi bi-person-circle" aria-hidden="true"></i>Hồ sơ của tôi</a>
             @if(auth()->user()->canManageHrm())
-                <a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-grid" aria-hidden="true"></i>Trang quản trị</a>
+                <a class="dropdown-item" href="{{ route('admin.dashboard') }}"><i class="bi bi-grid" aria-hidden="true"></i>Quay lại quản trị</a>
             @endif
             <hr class="dropdown-divider">
             <form method="POST" action="{{ route('logout') }}">
@@ -36,5 +42,6 @@
                 <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Đăng xuất</button>
             </form>
         </div>
+    </div>
     </div>
 </header>

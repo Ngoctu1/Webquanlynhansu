@@ -24,9 +24,7 @@ class AuthController extends Controller
             return $this->logout($request);
         }
         $user->update(['last_login_at' => now()]);
-        if ($user->hasRole(Role::EMPLOYEE)) {
-            return redirect()->route('user.attendances');
-        }
+        if ($user->hasRole(Role::EMPLOYEE)) { return redirect()->route('user.dashboard'); }
         return redirect($user->homePath());
     }
 

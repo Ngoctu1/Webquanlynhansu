@@ -4,94 +4,336 @@
 
 @section('content')
 @php
-    $profileAttributes = $employee->getAttributes();
+    $profileAttributes = $employee ? $employee->getAttributes() : [];
     $profileBirthday = $profileAttributes['date_of_birth'] ?? null;
     $profileGender = $profileAttributes['gender'] ?? null;
     $profileGenderLabel = ['male' => 'Nam', 'female' => 'Nữ', 'other' => 'Khác'][$profileGender] ?? ($profileGender ?: 'Chưa cập nhật');
     $employmentBadge = [
-        'pending' => ['Chờ nhận việc', 'warning'],
-        'working' => ['Đang làm việc', 'success'],
-        'on_leave' => ['Đang nghỉ phép', 'info'],
-        'resigned' => ['Đã nghỉ việc', 'neutral'],
-    ][$employee->employment_status] ?? [$employee->employment_status ?: 'Chưa cập nhật', 'neutral'];
+        'pending' => ['Chờ nhận việc', 'warning', 'bi-hourglass-split'],
+        'working' => ['Đang làm việc', 'success', 'bi-check-circle-fill'],
+        'on_leave' => ['Đang nghỉ phép', 'info', 'bi-cup-hot-fill'],
+        'resigned' => ['Đã nghỉ việc', 'neutral', 'bi-door-closed-fill'],
+    ][$employee?->employment_status] ?? [$employee?->employment_status ?: 'Chưa cập nhật', 'neutral', 'bi-info-circle'];
+
     $profileAccountStatus = $user->getAttributes()['status'] ?? null;
     $accountBadge = [
-        'pending_reset' => ['Chờ kích hoạt', 'warning'],
-        'active' => ['Đang hoạt động', 'success'],
-        'locked' => ['Đã khóa', 'danger'],
-    ][$profileAccountStatus] ?? [$profileAccountStatus ?: 'Chưa cập nhật', 'neutral'];
-    $profileNameParts = preg_split('/\s+/u', trim($employee->full_name ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+        'pending_reset' => ['Chờ kích hoạt', 'warning', 'bi-clock-history'],
+        'active' => ['Đang hoạt động', 'success', 'bi-shield-check'],
+        'locked' => ['Đã khóa', 'danger', 'bi-lock-fill'],
+    ][$profileAccountStatus] ?? [$profileAccountStatus ?: 'Chưa cập nhật', 'neutral', 'bi-shield'];
+
+    $profileNameParts = preg_split('/\s+/u', trim($employee?->full_name ?? $user->email), -1, PREG_SPLIT_NO_EMPTY);
     $profileInitials = mb_strtoupper(mb_substr($profileNameParts[0] ?? 'NV', 0, 1).(count($profileNameParts) > 1 ? mb_substr(end($profileNameParts), 0, 1) : ''));
+
+    // Tính thâm niên công tác nếu có hire_date
+    $seniority = null;
+    if ($employee?->hire_date) {
+        $diffYears = $employee->hire_date->diffInYears(now());
+        $diffMonths = $employee->hire_date->diffInMonths(now()) % 12;
+        if ($diffYears > 0) {
+            $seniority = $diffYears . ' năm' . ($diffMonths > 0 ? ' ' . $diffMonths . ' tháng' : '');
+        } elseif ($diffMonths > 0) {
+            $seniority = $diffMonths . ' tháng';
+        } else {
+            $seniority = 'Mới gia nhập';
+        }
+    }
 @endphp
 
-<section class="portal-card portal-profile-overview mb-4" aria-labelledby="profileName">
+{{-- ================= HERO PROFILE BANNER ================= --}}
+<section class="portal-profile-overview mb-4" aria-labelledby="profileName">
     <div class="d-flex flex-wrap align-items-center gap-4">
-        <div class="portal-avatar portal-avatar-lg" aria-hidden="true">{{ $profileInitials }}</div>
+        {{-- Avatar / Photo --}}
+        @if($employee?->profile_photo_path)
+            <img class="portal-avatar-lg shadow" src="{{ route('employees.photo', $employee) }}" alt="Ảnh đại diện {{ $employee->full_name }}" style="object-fit:cover">
+        @else
+            <div class="portal-avatar portal-avatar-lg shadow" aria-hidden="true">{{ $profileInitials }}</div>
+        @endif
+
+        {{-- Meta text --}}
         <div class="flex-grow-1" style="min-width: 0;">
-            <div class="portal-eyebrow">Hồ sơ nhân viên</div>
-            <h2 class="portal-profile-name" id="profileName">{{ $employee->full_name ?: 'Chưa cập nhật' }}</h2>
+            <div class="portal-eyebrow d-flex align-items-center gap-2">
+                <span>Hồ sơ nhân viên</span>
+                <span class="badge bg-white text-primary rounded-pill px-2 py-1" style="font-size:10px;">{{ $employee?->employee_code ?: 'NV' }}</span>
+            </div>
+            <h1 class="portal-profile-name" id="profileName">{{ $employee?->full_name ?: ($user->email) }}</h1>
             <div class="portal-profile-meta">
-                <span><i class="bi bi-briefcase" aria-hidden="true"></i>{{ $employee->position?->name ?: 'Chưa cập nhật' }}</span>
-                <span><i class="bi bi-building" aria-hidden="true"></i>{{ $employee->department?->name ?: 'Chưa cập nhật' }}</span>
+                <span><i class="bi bi-briefcase-fill me-1" aria-hidden="true"></i>{{ $employee?->position?->name ?: 'Chưa phân chức vụ' }}</span>
+                <span><i class="bi bi-building-fill me-1" aria-hidden="true"></i>{{ $employee?->department?->name ?: 'Chưa phân phòng ban' }}</span>
+                @if($employee?->work_email)
+                    <span class="d-none d-md-inline-flex"><i class="bi bi-envelope-fill me-1" aria-hidden="true"></i>{{ $employee->work_email }}</span>
+                @endif
             </div>
         </div>
-        <span class="portal-badge portal-badge-{{ $employmentBadge[1] }}"><i class="bi bi-person-check" aria-hidden="true"></i>{{ $employmentBadge[0] }}</span>
+
+        {{-- Badge trạng thái --}}
+        <div class="text-end">
+            <span class="portal-badge portal-badge-{{ $employmentBadge[1] }} shadow-sm">
+                <i class="bi {{ $employmentBadge[2] }} me-1" aria-hidden="true"></i>{{ $employmentBadge[0] }}
+            </span>
+        </div>
     </div>
+
+    {{-- Footer strip --}}
     <div class="portal-profile-footer">
-        <span><span class="portal-muted me-2">Mã nhân viên</span><strong>{{ $employee->employee_code ?: 'Chưa cập nhật' }}</strong></span>
-        <span><span class="portal-muted me-2">Ngày nhận việc</span><strong>{{ $employee->hire_date?->format('d/m/Y') ?? 'Chưa cập nhật' }}</strong></span>
+        <div>
+            <span class="opacity-75 me-2">Mã nhân viên:</span>
+            <strong>{{ $employee?->employee_code ?: 'Chưa cấp' }}</strong>
+        </div>
+        <div>
+            <span class="opacity-75 me-2">Ngày vào làm:</span>
+            <strong>{{ $employee?->hire_date?->format('d/m/Y') ?? 'Chưa cập nhật' }}</strong>
+        </div>
+        @if($seniority)
+        <div>
+            <span class="opacity-75 me-2">Thâm niên:</span>
+            <strong>{{ $seniority }}</strong>
+        </div>
+        @endif
+        <div class="ms-md-auto">
+            <span class="opacity-75 me-2">Tài khoản:</span>
+            <strong>{{ $accountBadge[0] }}</strong>
+        </div>
     </div>
 </section>
 
+{{-- ================= QUICK STATS ROW ================= --}}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-stat-card">
+            <div class="portal-stat-icon portal-stat-icon-indigo">
+                <i class="bi bi-person-vcard"></i>
+            </div>
+            <div>
+                <div class="portal-stat-title">Mã nhân sự</div>
+                <div class="portal-stat-value" style="font-size:20px;">{{ $employee?->employee_code ?: '—' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-stat-card">
+            <div class="portal-stat-icon portal-stat-icon-emerald">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div>
+                <div class="portal-stat-title">Phòng ban</div>
+                <div class="portal-stat-value" style="font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;" title="{{ $employee?->department?->name }}">
+                    {{ $employee?->department?->name ?: 'Chưa phân' }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-stat-card">
+            <div class="portal-stat-icon portal-stat-icon-amber">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div>
+                <div class="portal-stat-title">Ngày gia nhập</div>
+                <div class="portal-stat-value" style="font-size:18px;">{{ $employee?->hire_date?->format('d/m/Y') ?? 'Chưa có' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="portal-stat-card">
+            <div class="portal-stat-icon portal-stat-icon-rose">
+                <i class="bi bi-shield-check"></i>
+            </div>
+            <div>
+                <div class="portal-stat-title">Vai trò</div>
+                <div class="portal-stat-value" style="font-size:18px;">{{ $user->role?->name ?: 'Nhân viên' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ================= CHI TIẾT THÔNG TIN ================= --}}
 <div class="row g-4">
+    {{-- THÔNG TIN CÁ NHÂN --}}
     <div class="col-12 col-xl-7">
         <section class="portal-card h-100" aria-labelledby="personalInformation">
             <div class="portal-card-header">
-                <span class="portal-icon"><i class="bi bi-person" aria-hidden="true"></i></span>
-                <h2 id="personalInformation">Thông tin cá nhân</h2>
+                <span class="portal-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="personalInformation">Thông tin cá nhân</h2>
+                    <p>Lý lịch cá nhân và thông tin liên hệ của bạn.</p>
+                </div>
             </div>
             <div class="portal-card-body">
-                <dl class="portal-data-grid">
-                    <div><dt>Họ và tên</dt><dd>{{ $employee->full_name ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Ngày sinh</dt><dd>{{ $profileBirthday ? \Illuminate\Support\Carbon::parse($profileBirthday)->format('d/m/Y') : 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Giới tính</dt><dd>{{ $profileGenderLabel }}</dd></div>
-                    <div><dt>Số điện thoại</dt><dd>{{ $employee->phone ?: 'Chưa cập nhật' }}</dd></div>
-                    <div class="portal-data-wide"><dt>Email cá nhân</dt><dd>{{ $employee->personal_email ?: 'Chưa cập nhật' }}</dd></div>
-                    <div class="portal-data-wide"><dt>Địa chỉ</dt><dd>{{ $employee->address ?: 'Chưa cập nhật' }}</dd></div>
-                </dl>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-person"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Họ và tên</dt>
+                                <dd>{{ $employee?->full_name ?: 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-calendar-event"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Ngày sinh</dt>
+                                <dd>{{ $profileBirthday ? \Illuminate\Support\Carbon::parse($profileBirthday)->format('d/m/Y') : 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-gender-ambiguous"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Giới tính</dt>
+                                <dd>{{ $profileGenderLabel }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-telephone"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Số điện thoại</dt>
+                                <dd>
+                                    @if($employee?->phone)
+                                        <a href="tel:{{ $employee->phone }}" class="text-decoration-none text-primary fw-bold">{{ $employee->phone }}</a>
+                                    @else
+                                        Chưa cập nhật
+                                    @endif
+                                </dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-envelope"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Email cá nhân</dt>
+                                <dd>{{ $employee?->personal_email ?: 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-geo-alt"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Địa chỉ thường trú</dt>
+                                <dd>{{ $employee?->address ?: 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
+
+    {{-- THÔNG TIN CÔNG VIỆC --}}
     <div class="col-12 col-xl-5">
         <section class="portal-card h-100" aria-labelledby="workInformation">
             <div class="portal-card-header">
-                <span class="portal-icon portal-icon-teal"><i class="bi bi-briefcase" aria-hidden="true"></i></span>
-                <h2 id="workInformation">Thông tin công việc</h2>
+                <span class="portal-icon portal-icon-teal"><i class="bi bi-briefcase-fill" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="workInformation">Thông tin công việc</h2>
+                    <p>Vị trí, phòng ban và nhiệm vụ chuyên môn.</p>
+                </div>
             </div>
             <div class="portal-card-body">
-                <dl class="portal-data-grid">
-                    <div><dt>Mã nhân viên</dt><dd>{{ $employee->employee_code ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Ngày vào làm</dt><dd>{{ $employee->hire_date?->format('d/m/Y') ?? 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Phòng ban</dt><dd>{{ $employee->department?->name ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Chức vụ</dt><dd>{{ $employee->position?->name ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Trạng thái nhân sự</dt><dd><span class="portal-badge portal-badge-{{ $employmentBadge[1] }}">{{ $employmentBadge[0] }}</span></dd></div>
-                    <div class="portal-data-wide"><dt>Email công việc</dt><dd>{{ $employee->work_email ?: 'Chưa cập nhật' }}</dd></div>
-                </dl>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-building"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Phòng ban trực thuộc</dt>
+                                <dd class="text-primary">{{ $employee?->department?->name ?: 'Chưa phân bổ' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-award"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Chức vụ đảm nhiệm</dt>
+                                <dd>{{ $employee?->position?->name ?: 'Chưa bổ nhiệm' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-envelope-at"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Email công việc</dt>
+                                <dd>{{ $employee?->work_email ?: 'Chưa cấp' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-calendar2-plus"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Ngày vào làm</dt>
+                                <dd>{{ $employee?->hire_date?->format('d/m/Y') ?? 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-activity"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Tình trạng</dt>
+                                <dd><span class="portal-badge portal-badge-{{ $employmentBadge[1] }}">{{ $employmentBadge[0] }}</span></dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </div>
+
+    {{-- THÔNG TIN TÀI KHOẢN & BẢO MẬT --}}
     <div class="col-12">
         <section class="portal-card" aria-labelledby="accountInformation">
             <div class="portal-card-header">
-                <span class="portal-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
-                <h2 id="accountInformation">Thông tin tài khoản</h2>
+                <span class="portal-icon portal-icon-amber"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="accountInformation">Thông tin tài khoản &amp; Bảo mật</h2>
+                    <p>Thông tin đăng nhập và quyền truy cập vào hệ thống nội bộ.</p>
+                </div>
             </div>
             <div class="portal-card-body">
-                <dl class="portal-data-grid portal-account-grid">
-                    <div><dt>Email đăng nhập</dt><dd>{{ $user->email ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Vai trò</dt><dd>{{ $user->role?->name ?: 'Chưa cập nhật' }}</dd></div>
-                    <div><dt>Trạng thái tài khoản</dt><dd><span class="portal-badge portal-badge-{{ $accountBadge[1] }}">{{ $accountBadge[0] }}</span></dd></div>
-                </dl>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-person-badge"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Email đăng nhập</dt>
+                                <dd class="text-break">{{ $user->email }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-person-gear"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Vai trò người dùng</dt>
+                                <dd><span class="badge bg-primary rounded-pill px-3 py-1">{{ $user->role?->name ?: 'Nhân viên' }}</span></dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-check2-circle"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Trạng thái tài khoản</dt>
+                                <dd><span class="portal-badge portal-badge-{{ $accountBadge[1] }}">{{ $accountBadge[0] }}</span></dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="portal-notice mt-4">
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>Bảo mật thông tin:</strong> Nếu có bất kỳ thông tin nào chưa chính xác (số điện thoại, địa chỉ, tài khoản), vui lòng liên hệ phòng <strong>Nhân sự (HR)</strong> để được hỗ trợ cập nhật hồ sơ.
+                    </div>
+                </div>
             </div>
         </section>
     </div>

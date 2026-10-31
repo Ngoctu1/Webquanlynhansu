@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\{AccountInvitationController, AttendanceController, AuditLogController, AuthController,
-    ContractController, DashboardController, DepartmentController, EmployeeController, PayrollDetailController,
-    PayrollPeriodController, PositionController, UserController, WorkScheduleController};
+use App\Http\Controllers\{AccountInvitationController, AuditLogController, AuthController,
+    ContractController, DashboardController, DepartmentController, EmployeeController,
+    LeaveRequestController, PositionController, UserController};
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -29,37 +29,37 @@ Route::prefix('admin')->middleware(['auth', 'role:HR,Director,Admin'])->group(fu
         Route::patch('users/{user}/status', [UserController::class, 'updateStatus'])->name('users.status');
         Route::resource('contracts', ContractController::class)->only(['create', 'store', 'edit', 'update']);
         Route::post('contracts/{contract}/submit', [ContractController::class, 'submit'])->name('contracts.submit');
-        Route::resource('attendances', AttendanceController::class)->only(['create', 'store', 'edit', 'update']);
-        Route::resource('payrolls', PayrollPeriodController::class)->only(['create', 'store']);
-        Route::post('payrolls/{payroll}/calculate', [PayrollPeriodController::class, 'calculate'])->name('payrolls.calculate');
-        Route::post('payrolls/{payroll}/submit', [PayrollPeriodController::class, 'submit'])->name('payrolls.submit');
-        Route::resource('schedules', WorkScheduleController::class)->only(['create', 'store', 'edit', 'update']);
+        Route::post('contracts/{contract}/signed-document', [ContractController::class, 'uploadSignedDocument'])->middleware('role:HR')->name('contracts.signed-document.store');
     });
     Route::middleware('role:Director,Admin')->group(function () {
         Route::post('contracts/{contract}/approve', [ContractController::class, 'approve'])->name('contracts.approve');
         Route::post('contracts/{contract}/reject', [ContractController::class, 'reject'])->name('contracts.reject');
-        Route::post('payrolls/{payroll}/approve', [PayrollPeriodController::class, 'approve'])->name('payrolls.approve');
-        Route::post('payrolls/{payroll}/reject', [PayrollPeriodController::class, 'reject'])->name('payrolls.reject');
     });
     Route::resource('employees', EmployeeController::class)->only(['index', 'show']);
     Route::resource('departments', DepartmentController::class)->only(['index', 'show']);
     Route::resource('positions', PositionController::class)->only(['index', 'show']);
     Route::resource('contracts', ContractController::class)->only(['index', 'show']);
-    Route::get('attendances', [AttendanceController::class, 'index'])->name('attendances.index');
-    Route::resource('payrolls', PayrollPeriodController::class)->only(['index', 'show']);
-    Route::get('schedules', [WorkScheduleController::class, 'index'])->name('schedules.index');
+    Route::middleware('role:HR')->group(function () {
+        Route::get('leave-requests', [LeaveRequestController::class, 'index'])->name('leave-requests.index');
+        Route::get('leave-requests/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('leave-requests.show');
+        Route::post('leave-requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
+        Route::post('leave-requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
+    });
     Route::get('users', [UserController::class, 'index'])->name('users.index');
     Route::patch('users/{user}/role', [UserController::class, 'updateRole'])->middleware('role:Admin')->name('users.role');
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit.index');
 });
 
 Route::prefix('user')->middleware(['auth', 'role:HR,Director,Employee,Admin'])->group(function () {
-    Route::get('/', fn () => redirect()->route('user.attendances'));
+    Route::get('/', fn () => redirect()->route('user.dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'profile'])->name('user.dashboard');
     Route::get('/contracts', [DashboardController::class, 'contracts'])->name('user.contracts');
-    Route::get('/attendances', [AttendanceController::class, 'mine'])->name('user.attendances');
-    Route::get('/attendances/history', [AttendanceController::class, 'history'])->name('user.attendances.history');
-    Route::post('/attendances/check-in', [AttendanceController::class, 'checkIn'])->name('user.attendances.check-in');
-    Route::post('/attendances/check-out', [AttendanceController::class, 'checkOut'])->name('user.attendances.check-out');
-    Route::get('/payrolls', [PayrollDetailController::class, 'index'])->name('user.payrolls');
+    Route::get('/leave-requests', [LeaveRequestController::class, 'mine'])->name('user.leave-requests.index');
+    Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('user.leave-requests.store');
+    Route::patch('/leave-requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel'])->name('user.leave-requests.cancel');
+});
+
+Route::middleware(['auth', 'role:HR,Director,Employee,Admin'])->group(function () {
+    Route::get('/employee-photos/{employee}', [EmployeeController::class, 'photo'])->name('employees.photo');
+    Route::get('/contract-documents/{contract}', [ContractController::class, 'signedDocument'])->name('contracts.signed-document.show');
 });

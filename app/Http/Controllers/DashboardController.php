@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Models\{Contract, Employee, PayrollPeriod};
+use App\Models\{Contract, Department, Employee};
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -9,10 +9,15 @@ class DashboardController extends Controller
     public function admin()
     {
         return view('admin.welcome', [
-            'employeeCount' => Employee::count(),
-            'workingCount' => Employee::where('employment_status', 'working')->count(),
+            'employeeCount'    => Employee::count(),
+            'workingCount'     => Employee::where('employment_status', 'working')->count(),
             'pendingContracts' => Contract::where('status', 'pending_approval')->count(),
-            'pendingPayrolls' => PayrollPeriod::where('status', 'pending_approval')->count(),
+            'departmentCount'  => Department::count(),
+            'recentEmployees'  => Employee::with(['department', 'position'])
+                                          ->latest()->take(6)->get(),
+            'recentContracts'  => Contract::with('employee')
+                                          ->where('status', 'pending_approval')
+                                          ->latest()->take(5)->get(),
         ]);
     }
     public function profile(Request $request)

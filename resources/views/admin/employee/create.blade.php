@@ -87,5 +87,5 @@
 @endsection
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h4 mb-0">Thêm nhân viên</h1></div>
-<div class="form-card"><form method="POST" action="{{ route('employees.store') }}">@csrf<div class="form-card-body p-4">@include('admin.employee._form')</div><div class="form-footer p-3"><a href="{{ route('employees.index') }}" class="btn btn-light">Quay lại</a><button class="btn btn-primary">Lưu hồ sơ</button></div></form></div>
+<div class="form-card"><form method="POST" action="{{ route('employees.store') }}" enctype="multipart/form-data">@csrf<div class="form-card-body p-4">@include('admin.employee._form')</div><div class="form-footer p-3"><a href="{{ route('employees.index') }}" class="btn btn-light">Quay lại</a><button class="btn btn-primary">Lưu hồ sơ</button></div></form></div>
 @endsection

@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\{Department, Employee, Position, Role, User, WorkSchedule};
+use App\Models\{Department, Employee, Position, Role, User};
 use App\Services\RecordCodeService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\{DB, Hash, Validator};
@@ -14,12 +14,12 @@ class BootstrapUserSeeder extends Seeder
     // Fixed demo credentials explicitly requested for these three seeded accounts.
     private const ACCOUNTS = [
         Role::DIRECTOR => [
-            'employee_code' => 'BOOT-DIRECTOR', 'full_name' => 'Giám đốc hệ thống',
+            'full_name' => 'Giám đốc hệ thống',
             'email' => 'director@hrm.com', 'password' => 'Abcd1234',
             'department_code' => 'HR', 'position_code' => 'DIRECTOR',
         ],
         Role::HR => [
-            'employee_code' => 'BOOT-HR', 'full_name' => 'Nhân sự hệ thống',
+            'full_name' => 'Nhân sự hệ thống',
             'email' => 'hr@hrm.com', 'password' => 'aBcd1234',
             'department_code' => 'HR', 'position_code' => 'HEAD',
         ],
@@ -39,8 +39,7 @@ class BootstrapUserSeeder extends Seeder
     {
         DB::transaction(function () use ($roles) {
             // Both this seeder and DirectorUserSeeder can run independently.
-            $this->call([RoleSeeder::class, DepartmentSeeder::class, PositionSeeder::class, WorkScheduleSeeder::class]);
-            $schedule = WorkSchedule::where('name', 'Hành chính 08:00–17:00')->where('status', 'active')->firstOrFail();
+            $this->call([RoleSeeder::class, DepartmentSeeder::class, PositionSeeder::class]);
 
             foreach ($roles as $roleName) {
                 $account = self::ACCOUNTS[$roleName];
@@ -50,14 +49,10 @@ class BootstrapUserSeeder extends Seeder
                 ])->validate();
 
                 $role = Role::where('name', $roleName)->lockForUpdate()->firstOrFail();
-                if ($roleName === Role::EMPLOYEE) {
-                    $existingUser = User::where('email', $account['email'])->first();
-                    $employee = $existingUser
-                        ? Employee::lockForUpdate()->findOrFail($existingUser->employee_id)
-                        : Employee::where('personal_email', $account['email'])->lockForUpdate()->first();
-                } else {
-                    $employee = Employee::where('employee_code', $account['employee_code'])->lockForUpdate()->first();
-                }
+                $existingUser = User::where('email', $account['email'])->first();
+                $employee = $existingUser
+                    ? Employee::lockForUpdate()->findOrFail($existingUser->employee_id)
+                    : Employee::where('personal_email', $account['email'])->lockForUpdate()->first();
                 $user = $employee ? $employee->user()->lockForUpdate()->first() : null;
 
                 if (User::where('email', $account['email'])
@@ -74,18 +69,14 @@ class BootstrapUserSeeder extends Seeder
                     'full_name' => $account['full_name'], 'personal_email' => $account['email'],
                     'department_id' => Department::where('code', $account['department_code'])->where('status', 'active')->firstOrFail()->id,
                     'position_id' => Position::where('code', $account['position_code'])->where('status', 'active')->firstOrFail()->id,
-                    // Preserve an existing schedule because attendance may already reference it.
-                    'work_schedule_id' => $employee->work_schedule_id ?? $schedule->id,
                     'employment_status' => 'working', 'hire_date' => $employee->hire_date ?? today(),
                 ];
                 if ($employee) {
                     $employee->fill($attributes)->save();
-                } elseif ($roleName === Role::EMPLOYEE) {
+                } else {
                     $employee = app(RecordCodeService::class)->employee(
                         fn (string $code) => Employee::create([...$attributes, 'employee_code' => $code])
                     );
-                } else {
-                    $employee = Employee::create([...$attributes, 'employee_code' => $account['employee_code']]);
                 }
 
                 $user ??= new User(['employee_id' => $employee->id]);

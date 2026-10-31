@@ -1,256 +1,148 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="Hệ thống Quản lý Nhân sự - Giải pháp quản trị nhân sự toàn diện">
-
-    <title>@yield('title', 'Dashboard') | Quản lý Nhân sự</title>
-
-    {{-- Bootstrap 5 CSS --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-
-    {{-- Bootstrap Icons --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-    {{-- Google Fonts --}}
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    {{-- Custom Layout Styles --}}
-    <style>
-        /* ===== RESET & BASE ===== */
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :root {
-            --sidebar-width: 260px;
-            --sidebar-collapsed-width: 72px;
-            --header-height: 64px;
-            --primary-color: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #dbeafe;
-            --sidebar-bg: #0f172a;
-            --sidebar-text: #94a3b8;
-            --sidebar-hover: #1e293b;
-            --sidebar-active: #2563eb;
-            --header-bg: #ffffff;
-            --body-bg: #f1f5f9;
-            --card-bg: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
-            --radius: 12px;
-            --transition: all 0.25s ease;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--body-bg);
-            color: var(--text-primary);
-            overflow-x: hidden;
-        }
-
-        /* ===== WRAPPER ===== */
-        #app-wrapper {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* ===== SIDEBAR ===== */
-        #sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;          /* Chiều cao cố định theo viewport */
-            background: var(--sidebar-bg);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1050;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;       /* Sidebar tổng thể không cuộn — chỉ .sidebar-scroll cuộn */
-        }
-
-        #sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-        }
-
-        /* ===== MAIN CONTENT AREA ===== */
-        #main-content {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            transition: var(--transition);
-        }
-
-        #main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-
-        /* ===== HEADER ===== */
-        #header {
-            height: var(--header-height);
-            background: var(--header-bg);
-            position: sticky;
-            top: 0;
-            z-index: 1040;
-            border-bottom: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
-        }
-
-        /* ===== PAGE CONTENT ===== */
-        #page-content {
-            flex: 1;
-            padding: 28px 28px 0 28px;
-        }
-
-        /* ===== FOOTER ===== */
-        #footer {
-            margin-top: auto;
-            padding: 16px 28px;
-            background: var(--header-bg);
-            border-top: 1px solid var(--border-color);
-        }
-
-        /* ===== OVERLAY (mobile) ===== */
-        #sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.55);
-            z-index: 1049;
-        }
-
-        /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 991.98px) {
-            #sidebar {
-                left: calc(-1 * var(--sidebar-width));
-            }
-
-            #sidebar.mobile-open {
-                left: 0;
-            }
-
-            #main-content {
-                margin-left: 0 !important;
-            }
-
-            #sidebar-overlay.active {
-                display: block;
-            }
-
-            #page-content {
-                padding: 20px 16px 0 16px;
-            }
-        }
-
-        @media (max-width: 575.98px) {
-            #page-content {
-                padding: 16px 12px 0 12px;
-            }
-        }
-    </style>
-
-    {{-- Additional page-specific styles --}}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#124b45">
+    <title>@yield('title', 'Tổng quan') — Nhân Sự</title>
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/extra.css') }}">
     @yield('styles')
 </head>
 <body>
+<a class="visually-hidden-focusable skip-link" href="#main-content">Đi đến nội dung</a>
 
-{{-- Sidebar Overlay (mobile) --}}
-<div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+<aside class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-label="Điều hướng chính">
+    <a class="brand" href="{{ route('admin.dashboard') }}">
+        <span class="brand-icon"><i class="bi bi-intersect"></i></span>
+        <span>nhân sự<span class="brand-caption">PEOPLE &amp; OPERATIONS</span></span>
+    </a>
 
-<div id="app-wrapper">
+    <div class="workspace-label">
+        <span class="workspace-dot"></span> Không gian làm việc <span class="ms-auto small">01</span>
+    </div>
 
-    {{-- ===== SIDEBAR ===== --}}
-    @include('admin.partial.sidebar')
+    <div class="nav-label">QUẢN LÝ NHÂN SỰ</div>
+    <nav class="sidebar-nav">
+        <a class="{{ request()->routeIs('admin.*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
+            <i class="bi bi-grid-1x2"></i>Tổng quan</a>
+        <a class="{{ request()->routeIs('employees.*') ? 'active' : '' }}" href="{{ route('employees.index') }}">
+            <i class="bi bi-people"></i>Nhân viên</a>
+        <a class="{{ request()->routeIs('contracts.*') ? 'active' : '' }}" href="{{ route('contracts.index') }}">
+            <i class="bi bi-file-earmark-text"></i>Hợp đồng</a>
+        @if(auth()->user()->hasRole(\App\Models\Role::HR))
+        <a class="{{ request()->routeIs('leave-requests.*') ? 'active' : '' }}" href="{{ route('leave-requests.index') }}">
+            <i class="bi bi-check2-square"></i>Quản lý nghỉ phép</a>
+        @endif
 
-    {{-- ===== MAIN CONTENT ===== --}}
-    <div id="main-content">
+        <div class="nav-label">DANH MỤC &amp; HỆ THỐNG</div>
+        <a class="{{ request()->routeIs('departments.*') ? 'active' : '' }}" href="{{ route('departments.index') }}">
+            <i class="bi bi-building"></i>Phòng ban</a>
+        <a class="{{ request()->routeIs('positions.*') ? 'active' : '' }}" href="{{ route('positions.index') }}">
+            <i class="bi bi-briefcase"></i>Chức vụ</a>
+        <a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+            <i class="bi bi-shield-person"></i>Tài khoản</a>
+        <a class="{{ request()->routeIs('audit.*') ? 'active' : '' }}" href="{{ route('audit.index') }}">
+            <i class="bi bi-clock-history"></i>Lịch sử thao tác</a>
 
-        {{-- Header --}}
-        @include('admin.partial.header')
+        <div class="nav-label">CÁ NHÂN</div>
+        <a class="{{ request()->routeIs('user.*') ? 'active' : '' }}" href="{{ route('user.dashboard') }}">
+            <i class="bi bi-person"></i>Hồ sơ của tôi</a>
+    </nav>
 
-        {{-- Page Content --}}
-        <div id="page-content">
-            @include('admin.partial.alerts')
-            @yield('content')
+    <div class="sidebar-note">
+        <i class="bi bi-shield-check"></i>
+        <strong>Thông tin có kiểm soát</strong>
+        <p>Mọi thay đổi đều có lịch sử.<br>Mọi phê duyệt đều rõ ràng.</p>
+    </div>
+
+    <div class="sidebar-user">
+        <span class="avatar avatar-light">{{ mb_substr(auth()->user()->employee?->full_name ?? auth()->user()->email, 0, 1) }}</span>
+        <div>
+            <strong>{{ auth()->user()->employee?->full_name ?? auth()->user()->email }}</strong>
+            <small>{{ auth()->user()->role->name }}</small>
         </div>
+        <form method="POST" action="{{ route('logout') }}" class="ms-auto">
+            @csrf
+            <button class="logout-btn" aria-label="Đăng xuất" title="Đăng xuất">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+</aside>
 
-        {{-- Footer --}}
-        @include('admin.partial.footer')
+<div class="app-shell">
+    <header class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button type="button" class="btn btn-light d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Mở menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="text-muted">Không gian nhân sự</span>
+            <i class="bi bi-chevron-right small text-muted"></i>
+            <strong>@yield('title', 'Tổng quan')</strong>
+        </div>
+        <div class="topbar-right">
+            @if(auth()->user()->hasRole(\App\Models\Role::HR, 'Director'))
+            <a href="{{ route('user.leave-requests.index') }}" class="btn btn-light btn-sm d-inline-flex align-items-center gap-1">
+                <i class="bi bi-calendar2-check"></i><span class="d-none d-sm-inline">Nghỉ phép cá nhân</span>
+            </a>
+            @endif
+            <span class="today-label"><i class="bi bi-calendar3 me-2"></i>{{ now()->format('d.m.Y') }}</span>
+            <span class="role-pill">{{ auth()->user()->role->name }}</span>
+        </div>
+    </header>
 
-    </div>{{-- /#main-content --}}
+    <main id="main-content">
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="status">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        </div>
+        @endif
+        @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Đóng"></button>
+        </div>
+        @endif
+        @if($errors->any())
+        <div class="alert alert-danger" role="alert">
+            <strong>Vui lòng kiểm tra lại thông tin.</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+            </ul>
+        </div>
+        @endif
+        @yield('content')
+    </main>
 
-</div>{{-- /#app-wrapper --}}
+    <footer class="app-footer">
+        <span>Nhân Sự <span class="mx-2">/</span> Quản lý hồ sơ &amp; phê duyệt</span>
+        <span>Đồ án thực hành © {{ now()->year }}</span>
+    </footer>
+</div>
 
-{{-- Bootstrap 5 JS Bundle (includes Popper) --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{{-- Confirm Modal --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmTitle">Xác nhận thao tác</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body" id="confirmMessage"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Quay lại</button>
+                <button type="button" class="btn btn-primary" id="confirmSubmit">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-{{-- Chart.js CDN --}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
-{{-- Layout Core Script --}}
-<script>
-    /* ---------- Sidebar Toggle (Desktop) ---------- */
-    function toggleSidebar() {
-        const sidebar    = document.getElementById('sidebar');
-        const mainContent = document.getElementById('main-content');
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('expanded');
-
-        // Save state
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
-    }
-
-    /* ---------- Mobile Sidebar ---------- */
-    function openMobileSidebar() {
-        document.getElementById('sidebar').classList.add('mobile-open');
-        document.getElementById('sidebar-overlay').classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeMobileSidebar() {
-        document.getElementById('sidebar').classList.remove('mobile-open');
-        document.getElementById('sidebar-overlay').classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
-    /* ---------- Restore sidebar state on load ---------- */
-    document.addEventListener('DOMContentLoaded', function () {
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed && window.innerWidth >= 992) {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.getElementById('main-content').classList.add('expanded');
-        }
-
-        // Highlight active menu item based on current URL
-        const currentPath = window.location.pathname;
-        document.querySelectorAll('#sidebar .nav-link').forEach(function (link) {
-            if (link.getAttribute('href') === currentPath) {
-                link.classList.add('active');
-            }
-        });
-    });
-</script>
-
-{{-- Additional page-specific scripts --}}
+<script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('js/app.js') }}"></script>
 @yield('scripts')
-
 </body>
 </html>

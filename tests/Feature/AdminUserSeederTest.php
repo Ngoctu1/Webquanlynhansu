@@ -19,8 +19,8 @@ class AdminUserSeederTest extends TestCase
             || !in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
             $this->markTestSkipped('Use an isolated MySQL/MariaDB test database; no migrations or resets are run here.');
         }
-        if (!Schema::hasTable('work_schedules') || !Schema::hasTable('users')) {
-            $this->markTestSkipped('Prepare the current schema, including the Admin role migration.');
+        if (!Schema::hasTable('employees') || !Schema::hasTable('users')) {
+            $this->markTestSkipped('Prepare the current schema, including the Admin enum value.');
         }
         if (User::whereIn('email', ['admin@hrm.com', 'director@hrm.com', 'hr@hrm.com', 'nv1@hrm.com'])->exists()
             || Employee::whereIn('personal_email', ['admin@hrm.com', 'director@hrm.com', 'hr@hrm.com', 'nv1@hrm.com'])->exists()

@@ -130,19 +130,199 @@
     .empty-state i { font-size: 3rem; margin-bottom: 14px; display: block; }
 </style>
 @endsection
+
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h4 mb-0">Danh sách nhân viên</h1></div>
-@if(auth()->user()->canManageHrm())<a href="{{ route('employees.create') }}" class="btn btn-primary mb-3">Thêm nhân viên</a>@endif
-<form class="row g-2 mb-3" method="GET"><div class="col-md-4"><input class="form-control" name="q" value="{{ request('q') }}" placeholder="Mã, họ tên, email, điện thoại" maxlength="150" aria-label="Tìm nhân viên"></div>
-<div class="col-md-2"><select class="form-select" name="department_id" aria-label="Phòng ban"><option value="">Tất cả phòng ban</option>@foreach($departments as $option)<option value="{{ $option->id }}" @selected((string)request('department_id') === (string)$option->id)>{{ $option->name }}</option>@endforeach</select></div><div class="col-md-2"><select class="form-select" name="position_id" aria-label="Chức vụ"><option value="">Tất cả chức vụ</option>@foreach($positions as $option)<option value="{{ $option->id }}" @selected((string)request('position_id') === (string)$option->id)>{{ $option->name }}</option>@endforeach</select></div>
-<div class="col-md-2"><select class="form-select" name="employment_status" aria-label="Trạng thái"><option value="">Tất cả trạng thái</option><option value="pending" @selected(request('employment_status') === 'pending')>Chờ nhận việc</option><option value="working" @selected(request('employment_status') === 'working')>Đang làm việc</option><option value="on_leave" @selected(request('employment_status') === 'on_leave')>Nghỉ phép</option><option value="resigned" @selected(request('employment_status') === 'resigned')>Nghỉ việc</option></select></div><div class="col-md-2"><button class="btn btn-outline-primary">Lọc</button> <a href="{{ route('employees.index') }}" class="btn btn-light">Xóa lọc</a></div></form>
-<div class="card table-responsive"><table class="table align-middle"><thead><tr><th>STT</th><th>Mã</th><th>Họ tên</th><th>Email</th><th>Điện thoại</th><th>Phòng ban</th><th>Chức vụ</th><th>Trạng thái</th><th>Tài khoản</th><th>Thao tác</th></tr></thead><tbody>
-@forelse($employees as $employee)<tr><td>{{ $employees->firstItem() + $loop->index }}</td><td>{{ $employee->employee_code }}</td><td>{{ $employee->full_name }}</td>
-<td>{{ $employee->personal_email }}@if($employee->work_email)<div class="small text-muted">{{ $employee->work_email }}</div>@endif</td><td>{{ $employee->phone ?? '—' }}</td><td>{{ $employee->department->name }}</td><td>{{ $employee->position->name }}</td>
-<td>@include('admin.partial.status', ['status' => $employee->employment_status])</td><td>@if($employee->user){{ $employee->user->email }}<div>{{ $employee->user->role->name }}</div>@include('admin.partial.status', ['status' => $employee->user->status])@else Chưa có tài khoản @endif</td>
-<td><a href="{{ route('employees.show', $employee) }}" class="btn btn-sm btn-outline-primary">Xem</a>
-@if(auth()->user()->canManageHrm())<a href="{{ route('employees.edit', $employee) }}" class="btn btn-sm btn-outline-secondary">Sửa</a>
-@if($employee->employment_status !== 'resigned')<form class="d-inline" action="{{ route('employees.destroy', $employee) }}" method="POST" onsubmit="return confirm('Đánh dấu nhân viên nghỉ việc?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger">Nghỉ việc</button></form>@endif @endif</td></tr>
-@empty<tr><td colspan="10" class="text-center">Chưa có nhân viên phù hợp.</td></tr>@endforelse
-</tbody></table></div><div class="mt-3">{{ $employees->links('pagination::bootstrap-5') }}</div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h4 mb-0">Danh sách nhân viên</h1>
+    </div>
+
+    @if(auth()->user()->canManageHrm())
+        <a href="{{ route('employees.create') }}" class="btn btn-primary mb-3">
+            Thêm nhân viên
+        </a>
+    @endif
+
+    <form class="row g-2 mb-3" method="GET">
+        <div class="col-md-4">
+            <input
+                class="form-control"
+                name="q"
+                value="{{ request('q') }}"
+                placeholder="Mã, họ tên, email, điện thoại"
+                maxlength="150"
+                aria-label="Tìm nhân viên"
+            >
+        </div>
+
+        <div class="col-md-2">
+            <select class="form-select" name="department_id" aria-label="Phòng ban">
+                <option value="">Tất cả phòng ban</option>
+
+                @foreach($departments as $option)
+                    <option
+                        value="{{ $option->id }}"
+                        @selected((string) request('department_id') === (string) $option->id)
+                    >
+                        {{ $option->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <select class="form-select" name="position_id" aria-label="Chức vụ">
+                <option value="">Tất cả chức vụ</option>
+
+                @foreach($positions as $option)
+                    <option
+                        value="{{ $option->id }}"
+                        @selected((string) request('position_id') === (string) $option->id)
+                    >
+                        {{ $option->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <select class="form-select" name="employment_status" aria-label="Trạng thái">
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending" @selected(request('employment_status') === 'pending')>
+                    Chờ nhận việc
+                </option>
+                <option value="working" @selected(request('employment_status') === 'working')>
+                    Đang làm việc
+                </option>
+                <option value="on_leave" @selected(request('employment_status') === 'on_leave')>
+                    Nghỉ phép
+                </option>
+                <option value="resigned" @selected(request('employment_status') === 'resigned')>
+                    Nghỉ việc
+                </option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary">Lọc</button>
+            <a href="{{ route('employees.index') }}" class="btn btn-light">
+                Xóa lọc
+            </a>
+        </div>
+    </form>
+
+    <div class="card table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã</th>
+                    <th>Họ tên</th>
+                    <th>Tài khoản</th>
+                    <th>Điện thoại</th>
+                    <th>Phòng ban</th>
+                    <th>Chức vụ</th>
+                    <th>Trạng thái</th>
+                    
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @forelse($employees as $employee)
+                    <tr>
+                        <td>
+                            {{ $employees->firstItem() + $loop->index }}
+                        </td>
+
+                        <td>
+                            {{ $employee->employee_code }}
+                        </td>
+
+                        <td class="d-flex align-items-center gap-2">
+
+                            <span>{{ $employee->full_name }}</span>
+                        </td>
+                        <td>
+                            @if($employee->user)
+                                {{ $employee->user->email }}
+
+                                <div>
+                                    {{ $employee->user->role->name }}
+                                </div>
+
+                                @include('admin.partial.status', [
+                                    'status' => $employee->user->status
+                                ])
+                            @else
+                                Chưa có tài khoản
+                            @endif
+                        </td>
+                        <td>
+                            {{ $employee->phone ?? '—' }}
+                        </td>
+
+                        <td>
+                            {{ $employee->department->name }}
+                        </td>
+
+                        <td>
+                            {{ $employee->position->name }}
+                        </td>
+
+                        <td>
+                            @include('admin.partial.status', [
+                                'status' => $employee->employment_status
+                            ])
+                        </td>
+
+                        
+
+                        <td>
+                            <a
+                                href="{{ route('employees.show', $employee) }}"
+                                class="btn btn-sm btn-outline-primary"
+                            >
+                                Xem
+                            </a>
+
+                            @if(auth()->user()->canManageHrm())
+                                <a
+                                    href="{{ route('employees.edit', $employee) }}"
+                                    class="btn btn-sm btn-outline-secondary"
+                                >
+                                    Sửa
+                                </a>
+
+                                @if($employee->employment_status !== 'resigned')
+                                    <form
+                                        class="d-inline"
+                                        action="{{ route('employees.destroy', $employee) }}"
+                                        method="POST"
+                                        onsubmit="return confirm('Đánh dấu nhân viên nghỉ việc?')"
+                                    >
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            Nghỉ việc
+                                        </button>
+                                    </form>
+                                @endif
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="10" class="text-center">
+                            Chưa có nhân viên phù hợp.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-3">
+        {{ $employees->links('pagination::bootstrap-5') }}
+    </div>
 @endsection

@@ -12,9 +12,9 @@ class DirectorUserSeederTest extends TestCase
 {
     private bool $transactionStarted = false;
     private const ACCOUNTS = [
-        'director@hrm.com' => ['Abcd1234', Role::DIRECTOR, 'BOOT-DIRECTOR', 'DIRECTOR', '/admin'],
-        'hr@hrm.com' => ['aBcd1234', Role::HR, 'BOOT-HR', 'HEAD', '/admin'],
-        'nv1@hrm.com' => ['abCd1234', Role::EMPLOYEE, 'NV001', 'STAFF', '/user'],
+        'director@hrm.com' => ['Abcd1234', Role::DIRECTOR, 'NV001', 'DIRECTOR', '/admin'],
+        'hr@hrm.com' => ['aBcd1234', Role::HR, 'NV002', 'HEAD', '/admin'],
+        'nv1@hrm.com' => ['abCd1234', Role::EMPLOYEE, 'NV003', 'STAFF', '/user'],
     ];
 
     protected function setUp(): void
@@ -24,7 +24,7 @@ class DirectorUserSeederTest extends TestCase
             || !in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
             $this->markTestSkipped('Use an isolated MySQL/MariaDB test database; this test never migrates or resets it.');
         }
-        if (!Schema::hasTable('work_schedules') || !Schema::hasTable('users')) {
+        if (!Schema::hasTable('employees') || !Schema::hasTable('users')) {
             $this->markTestSkipped('Prepare the current schema first.');
         }
         if (Employee::whereIn('employee_code', ['BOOT-DIRECTOR', 'BOOT-HR', 'NV001'])->exists()
@@ -61,7 +61,6 @@ class DirectorUserSeederTest extends TestCase
             $this->assertSame($email, $user->employee->personal_email);
             $this->assertSame('active', $user->employee->department->status);
             $this->assertSame('active', $user->employee->position->status);
-            $this->assertSame('active', $user->employee->workSchedule->status);
 
             $this->post('/login', ['email' => $email, 'password' => $password])->assertRedirect($path);
             $this->assertAuthenticatedAs($user);
@@ -101,14 +100,13 @@ class DirectorUserSeederTest extends TestCase
         $this->assertSame('working', $user->employee->employment_status);
     }
 
-    public function test_director_seeder_runs_independently_and_updates_the_old_seeded_email(): void
+    public function test_director_seeder_runs_independently_and_restores_credentials(): void
     {
         app(DirectorUserSeeder::class)->run();
         $user = User::where('email', 'director@hrm.com')->firstOrFail();
         $id = $user->id;
         $employeeId = $user->employee_id;
-        $user->update(['email' => 'director@hrm.test', 'password' => Hash::make('Previous123')]);
-        $user->employee->update(['personal_email' => 'director@hrm.test']);
+        $user->update(['status' => 'locked', 'password' => Hash::make('Previous123')]);
 
         app(DirectorUserSeeder::class)->run();
 
@@ -131,7 +129,7 @@ class DirectorUserSeederTest extends TestCase
             app(BootstrapUserSeeder::class)->run();
             $this->fail('A duplicate email must not take over an unrelated account.');
         } catch (RuntimeException $exception) {
-            $this->assertStringContainsString('hồ sơ khác', $exception->getMessage());
+            $this->assertStringContainsString('vai trò khác', $exception->getMessage());
         }
 
         $this->assertTrue($existing->fresh()->hasRole(Role::EMPLOYEE));

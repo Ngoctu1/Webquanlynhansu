@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\{Department, Employee, Position, Role, User, WorkSchedule};
+use App\Models\{Department, Employee, Position, Role, User};
 use App\Services\RecordCodeService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\{DB, Hash};
@@ -15,7 +15,7 @@ class AdminUserSeeder extends Seeder
 
     public function run(): void
     {
-        $this->call([RoleSeeder::class, DepartmentSeeder::class, PositionSeeder::class, WorkScheduleSeeder::class]);
+        $this->call([RoleSeeder::class, DepartmentSeeder::class, PositionSeeder::class]);
         $existing = User::with('role')->where('email', self::EMAIL)->first();
         if ($existing && !$existing->hasRole(Role::ADMIN)) {
             throw new RuntimeException('Email Admin đã thuộc tài khoản có vai trò khác. Seeder không tự nâng quyền tài khoản đó.');
@@ -42,7 +42,6 @@ class AdminUserSeeder extends Seeder
                     'employee_code' => $code, 'full_name' => 'Quản trị hệ thống', 'personal_email' => self::EMAIL,
                     'department_id' => Department::where('code', 'HR')->where('status', 'active')->firstOrFail()->id,
                     'position_id' => Position::where('code', 'HEAD')->where('status', 'active')->firstOrFail()->id,
-                    'work_schedule_id' => WorkSchedule::where('status', 'active')->orderBy('id')->firstOrFail()->id,
                     'employment_status' => 'working', 'hire_date' => today(),
                 ]);
             }

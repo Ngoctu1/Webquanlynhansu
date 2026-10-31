@@ -1,7 +1,7 @@
 <?php
 namespace Database\Factories;
 
-use App\Models\{Department, Position, WorkSchedule};
+use App\Models\{Department, Employee, Position};
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class EmployeeFactory extends Factory
@@ -9,15 +9,23 @@ class EmployeeFactory extends Factory
     public function definition(): array
     {
         return [
-            'employee_code' => fake()->unique()->bothify('NV-########'),
-            'full_name' => fake()->name(), 'personal_email' => fake()->unique()->safeEmail(),
+            'employee_code' => function () {
+                for ($attempt = 0; $attempt < 999; $attempt++) {
+                    $code = sprintf('NV%03d', fake()->unique()->numberBetween(1, 999));
+                    if (!Employee::where('employee_code', $code)->exists()) { return $code; }
+                }
+                throw new \RuntimeException('Không còn mã nhân viên mẫu NV001–NV999.');
+            },
+            'full_name' => fake()->name(),
+            'gender' => fake()->randomElement(['male', 'female']),
+            'date_of_birth' => fake()->dateTimeBetween('-45 years', '-22 years')->format('Y-m-d'),
+            'phone' => fake()->unique()->numerify('09########'),
+            'personal_email' => fake()->unique()->safeEmail(),
+            'work_email' => fake()->unique()->companyEmail(),
+            'address' => fake()->address(),
             'department_id' => fn () => Department::firstOrCreate(['code' => 'TEST'], ['name' => 'Phòng thử nghiệm', 'status' => 'active'])->id,
             'position_id' => fn () => Position::firstOrCreate(['code' => 'TEST'], ['name' => 'Vị trí thử nghiệm', 'status' => 'active'])->id,
-            'work_schedule_id' => fn () => WorkSchedule::firstOrCreate(['name' => 'Test schedule'], [
-                'start_time' => '08:00', 'end_time' => '17:00', 'break_start' => '12:00', 'break_end' => '13:00',
-                'standard_minutes' => 480, 'late_grace_minutes' => 5, 'work_days' => [1,2,3,4,5], 'status' => 'active',
-            ])->id,
-            'employment_status' => 'working', 'hire_date' => today(),
+            'employment_status' => 'working', 'hire_date' => today(), 'profile_photo_path' => null,
         ];
     }
 }

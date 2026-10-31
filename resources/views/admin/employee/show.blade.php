@@ -119,7 +119,7 @@
 @endsection
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4"><h1 class="h4 mb-0">Hồ sơ nhân viên</h1></div>
-<div class="card p-4 mb-3"><p>Lịch làm việc: {{ $employee->workSchedule->name }}</p><h2 class="h5">{{ $employee->full_name }} — {{ $employee->employee_code }}</h2>
+<div class="card p-4 mb-3">@if($employee->profile_photo_path)<img src="{{ route('employees.photo', $employee) }}" alt="Ảnh đại diện {{ $employee->full_name }}" class="rounded mb-3" width="100" height="100" style="object-fit:cover">@else<div class="profile-avatar mb-3">{{ mb_strtoupper(mb_substr($employee->full_name, 0, 1)) }}</div>@endif<h2 class="h5">{{ $employee->full_name }} — {{ $employee->employee_code }}</h2>
 <div class="row"><div class="col-md-6 mb-2"><strong>Email cá nhân:</strong> {{ $employee->personal_email ?? '—' }}</div><div class="col-md-6 mb-2"><strong>Email công việc:</strong> {{ $employee->work_email ?? '—' }}</div><div class="col-md-6 mb-2"><strong>Điện thoại:</strong> {{ $employee->phone ?? '—' }}</div><div class="col-md-6 mb-2"><strong>Địa chỉ:</strong> {{ $employee->address ?? '—' }}</div>
 <div class="col-md-6 mb-2">Ngày sinh: {{ $employee->date_of_birth?->format('d/m/Y') ?? '—' }}</div><div class="col-md-6 mb-2">Giới tính: {{ ['male'=>'Nam','female'=>'Nữ','other'=>'Khác'][$employee->gender] ?? '—' }}</div>
 <div class="col-md-6 mb-2">Ngày nhận việc: {{ $employee->hire_date?->format('d/m/Y') ?? '—' }}</div><div class="col-md-6 mb-2">Phòng ban: {{ $employee->department->name }}</div><div class="col-md-6 mb-2">Chức vụ: {{ $employee->position->name }}</div></div>

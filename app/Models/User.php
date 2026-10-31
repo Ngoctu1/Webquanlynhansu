@@ -45,5 +45,6 @@ class User extends Authenticatable
     public function createdContracts() { return $this->hasMany(Contract::class, 'created_by'); }
     public function submittedContracts() { return $this->hasMany(Contract::class, 'submitted_by'); }
     public function approvedContracts() { return $this->hasMany(Contract::class, 'approved_by'); }
+    public function reviewedLeaveRequests() { return $this->hasMany(LeaveRequest::class, 'reviewed_by'); }
     public function auditLogs() { return $this->hasMany(AuditLog::class, 'user_id'); }
 }

@@ -26,11 +26,9 @@
 <li class="nav-item"><a href="{{ route('departments.index') }}" class="nav-link {{ request()->routeIs('departments.*') ? 'active' : '' }}"><i class="nav-icon bi bi-diagram-3"></i><span class="nav-text">Phòng ban</span></a></li>
 <li class="nav-item"><a href="{{ route('positions.index') }}" class="nav-link {{ request()->routeIs('positions.*') ? 'active' : '' }}"><i class="nav-icon bi bi-award"></i><span class="nav-text">Chức vụ</span></a></li>
 <li class="nav-item"><a href="{{ route('contracts.index') }}" class="nav-link {{ request()->routeIs('contracts.*') ? 'active' : '' }}"><i class="nav-icon bi bi-file-earmark-text"></i><span class="nav-text">Hợp đồng</span></a></li>
-<li class="nav-item"><a href="{{ route('attendances.index') }}" class="nav-link {{ request()->routeIs('attendances.*') ? 'active' : '' }}"><i class="nav-icon bi bi-clock-history"></i><span class="nav-text">Chấm công</span></a></li>
-<li class="nav-item"><a href="{{ route('payrolls.index') }}" class="nav-link {{ request()->routeIs('payrolls.*') ? 'active' : '' }}"><i class="nav-icon bi bi-cash-coin"></i><span class="nav-text">Bảng lương</span></a></li>
+@if(auth()->user()->hasRole(\App\Models\Role::HR))<li class="nav-item"><a href="{{ route('leave-requests.index') }}" class="nav-link {{ request()->routeIs('leave-requests.*') ? 'active' : '' }}"><i class="nav-icon bi bi-calendar2-check"></i><span class="nav-text">Quản lý nghỉ phép</span></a></li>@endif
 <li class="nav-item"><a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="nav-icon bi bi-shield-person"></i><span class="nav-text">Tài khoản</span></a></li>
 <li class="nav-item"><a href="{{ route('audit.index') }}" class="nav-link {{ request()->routeIs('audit.*') ? 'active' : '' }}"><i class="nav-icon bi bi-journal-text"></i><span class="nav-text">Nhật ký thao tác</span></a></li>
-<li class="nav-item"><a href="{{ route('schedules.index') }}" class="nav-link"><i class="nav-icon bi bi-calendar-week"></i><span class="nav-text">Lịch làm việc</span></a></li>
 <li class="sidebar-label">CÁ NHÂN</li><li class="nav-item"><a class="nav-link" href="{{ route('user.dashboard') }}"><i class="nav-icon bi bi-person"></i><span class="nav-text">Hồ sơ của tôi</span></a></li>
 </ul></div>
 

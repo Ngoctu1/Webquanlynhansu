@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\{FilterEmployeesRequest, SaveEmployeeRequest};
 
-use App\Models\{Department, Employee, Position, WorkSchedule};
+use App\Models\{Department, Employee, Position};
 use App\Services\{AuditService, RecordCodeService};
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EmployeeController extends Controller
 {
     public function index(FilterEmployeesRequest $request)
     {
         $filters = $request->validated();
-        $employees = Employee::with(['department', 'position', 'workSchedule', 'user.role'])
+        $employees = Employee::with(['department', 'position', 'user.role'])
             ->when(isset($filters['q']), function ($q) use ($filters) {
                 $q->where(function ($q) use ($filters) {
                     foreach (['employee_code', 'full_name', 'personal_email', 'work_email', 'phone'] as $field) {
@@ -37,11 +39,17 @@ class EmployeeController extends Controller
     public function store(SaveEmployeeRequest $request, RecordCodeService $codes)
     {
         $data = $request->payload();
-        $employee = $codes->employee(function (string $code) use ($data) {
-            $employee = Employee::create([...$data, 'employee_code' => $code]);
-            AuditService::record('EMPLOYEE_CREATED', $employee);
-            return $employee;
-        });
+        $photoPath = $request->file('profile_photo')?->store('employee-profiles', 'local');
+        try {
+            $employee = $codes->employee(function (string $code) use ($data, $photoPath) {
+                $employee = Employee::create([...$data, 'employee_code' => $code, 'profile_photo_path' => $photoPath]);
+                AuditService::record('EMPLOYEE_CREATED', $employee);
+                return $employee;
+            });
+        } catch (\Throwable $e) {
+            if ($photoPath) { Storage::disk('local')->delete($photoPath); }
+            throw $e;
+        }
         return redirect()->route('employees.show', $employee)->with('success', 'Đã tạo hồ sơ nhân viên.');
     }
 
@@ -59,19 +67,36 @@ class EmployeeController extends Controller
 
     public function update(SaveEmployeeRequest $request, Employee $employee)
     {
-        DB::transaction(function () use ($request, $employee) {
+        $newPhotoPath = $request->file('profile_photo')?->store('employee-profiles', 'local');
+        $oldPhotoPath = null;
+        try {
+        DB::transaction(function () use ($request, $employee, $newPhotoPath, &$oldPhotoPath) {
             $employee = Employee::lockForUpdate()->findOrFail($employee->id);
             $old = $employee->getAttributes();
-            $employee->fill($request->payload());
-            if ($employee->isDirty('work_schedule_id') && $employee->attendances()->exists()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['work_schedule_id' => 'Đã có chấm công theo lịch này. Chuyển lịch cần mô hình lịch sử phân ca; không đổi hồi tố.']);
-            }
+            $oldPhotoPath = $employee->profile_photo_path;
+            $employee->fill([...$request->payload(), ...($newPhotoPath ? ['profile_photo_path' => $newPhotoPath] : [])]);
             if ($employee->isDirty()) {
                 $employee->save();
                 AuditService::record('EMPLOYEE_UPDATED', $employee, $old);
             }
         });
+        } catch (\Throwable $e) {
+            if ($newPhotoPath) { Storage::disk('local')->delete($newPhotoPath); }
+            throw $e;
+        }
+        if ($newPhotoPath && $oldPhotoPath && $oldPhotoPath !== $newPhotoPath
+            && !Employee::where('profile_photo_path', $oldPhotoPath)->exists()) {
+            Storage::disk('local')->delete($oldPhotoPath);
+        }
         return redirect()->route('employees.show', $employee)->with('success', 'Đã cập nhật hồ sơ. Email đăng nhập hiện có không tự thay đổi.');
+    }
+
+    public function photo(Employee $employee): StreamedResponse
+    {
+        $user = request()->user();
+        abort_unless($user->canManageHrm() || (int) $user->employee_id === (int) $employee->id, 403);
+        abort_unless($employee->profile_photo_path && Storage::disk('local')->exists($employee->profile_photo_path), 404);
+        return Storage::disk('local')->response($employee->profile_photo_path);
     }
 
     public function destroy(Employee $employee)
@@ -90,7 +115,6 @@ class EmployeeController extends Controller
     private function options(?Employee $employee = null): array
     {
         return [
-            'workSchedules' => WorkSchedule::where('status', 'active')->when($employee, fn ($q) => $q->orWhere('id', $employee->work_schedule_id))->orderBy('name')->get(),
             'departments' => Department::where('status', 'active')->when($employee, fn ($q) => $q->orWhere('id', $employee->department_id))->orderBy('name')->get(),
             'positions' => Position::where('status', 'active')->when($employee, fn ($q) => $q->orWhere('id', $employee->position_id))->orderBy('name')->get(),
         ];

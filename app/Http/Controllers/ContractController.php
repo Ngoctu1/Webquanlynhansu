@@ -1,11 +1,13 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Http\Requests\{FilterContractsRequest, SaveContractRequest, RejectApprovalRequest};
+use App\Http\Requests\{FilterContractsRequest, SaveContractRequest, RejectApprovalRequest, UploadSignedContractRequest};
 
 use App\Models\{Contract, Employee};
 use App\Services\ContractService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContractController extends Controller
 {
@@ -55,6 +57,35 @@ class ContractController extends Controller
         $data = $request->validated();
         $service->transition($request->user(), $contract, 'reject', $data['rejection_reason']);
         return back()->with('success', 'Đã từ chối hợp đồng.');
+    }
+    public function uploadSignedDocument(UploadSignedContractRequest $request, Contract $contract)
+    {
+        abort_unless($contract->status === 'approved', 403, 'Chỉ tải bản scan sau khi hợp đồng được duyệt nội bộ.');
+        $newPath = $request->file('signed_document')->store('contract-documents', 'local');
+        $oldPath = null;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($contract, $newPath, &$oldPath) {
+                $contract = Contract::lockForUpdate()->findOrFail($contract->id);
+                $old = $contract->getAttributes();
+                $oldPath = $contract->signed_document_path;
+                $contract->update(['signed_document_path' => $newPath]);
+                \App\Services\AuditService::record('CONTRACT_SIGNED_DOCUMENT_UPLOADED', $contract, $old);
+            }, 3);
+        } catch (\Throwable $e) {
+            Storage::disk('local')->delete($newPath);
+            throw $e;
+        }
+        if ($oldPath && $oldPath !== $newPath && !Contract::where('signed_document_path', $oldPath)->exists()) {
+            Storage::disk('local')->delete($oldPath);
+        }
+        return back()->with('success', 'Đã lưu bản scan hợp đồng đã ký.');
+    }
+    public function signedDocument(Contract $contract): StreamedResponse
+    {
+        $user = request()->user();
+        abort_unless($user->canManageHrm() || ((int) $user->employee_id === (int) $contract->employee_id && $contract->status === 'approved'), 403);
+        abort_unless($contract->signed_document_path && Storage::disk('local')->exists($contract->signed_document_path), 404);
+        return Storage::disk('local')->response($contract->signed_document_path);
     }
     private function options(): array
     {

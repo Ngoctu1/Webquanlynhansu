@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/extra.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/ui-refresh.css') }}">
     @yield('styles')
 </head>
 <body>

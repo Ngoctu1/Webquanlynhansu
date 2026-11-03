@@ -21,8 +21,9 @@
     @forelse($contracts as $contract)
         @php
             $isIndefinite = !$contract->effective_to;
-            $isActive = $contract->effective_from <= now() && ($isIndefinite || $contract->effective_to >= now());
-            $estimatedTotal = ($contract->base_salary * ($contract->salary_coefficient ?: 1)) + ($contract->allowance ?: 0);
+            $isActive = $contract->status === 'active';
+            $coeff = $contract->coefficient ?: 1.00;
+            $estimatedTotal = ($contract->base_salary * $coeff) + ($contract->allowance ?: 0);
         @endphp
         <div class="col-12 col-xl-6">
             <article class="portal-contract-card h-100 d-flex flex-column" aria-labelledby="contractTitle{{ $loop->index }}">
@@ -76,7 +77,7 @@
                     </div>
                     <div>
                         <dt>Hệ số lương</dt>
-                        <dd class="portal-number">{{ $contract->salary_coefficient ?: '1.0' }}</dd>
+                        <dd class="portal-number">{{ $contract->coefficient ?: '1.00' }}</dd>
                     </div>
                     <div>
                         <dt>Phụ cấp</dt>
@@ -84,21 +85,25 @@
                     </div>
                 </dl>
 
+                @if($contract->allowance_note)
+                <div class="px-3 pb-2 small text-muted">
+                    <strong>Chi tiết phụ cấp:</strong> {{ $contract->allowance_note }}
+                </div>
+                @endif
+
                 {{-- Bottom Action (Scan document) --}}
                 <div class="p-3 bg-white border-top d-flex align-items-center justify-content-between">
                     <div class="small text-muted">
                         <i class="bi bi-calculator me-1"></i>Tổng thu nhập cứng ước tính: 
                         <strong class="text-primary">{{ number_format($estimatedTotal, 0, ',', '.') }} ₫</strong>
                     </div>
-                    @if($contract->signed_document_path)
+                    @if($contract->file_path)
                         <a class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm"
-                           target="_blank"
-                           rel="noopener"
-                           href="{{ route('contracts.signed-document.show', $contract) }}">
-                            <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Xem bản scan đã ký
+                           href="{{ route('contracts.download-pdf', $contract) }}">
+                            <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Tải hợp đồng PDF
                         </a>
                     @else
-                        <span class="badge bg-light text-muted border" style="font-size:11px;">Chưa có bản scan đính kèm</span>
+                        <span class="badge bg-light text-muted border" style="font-size:11px;">Chưa có bản PDF đính kèm</span>
                     @endif
                 </div>
             </article>

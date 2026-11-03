@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $middleware->alias([
+            'active_user' => \App\Http\Middleware\EnsureAccountIsActive::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
     })

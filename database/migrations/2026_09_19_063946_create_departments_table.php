@@ -1,27 +1,25 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // Exact MySQL/MariaDB DDL from the approved ten-table schema.
-        DB::unprepared(<<<'SQL'
-CREATE TABLE `departments` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `name` VARCHAR(120) NOT NULL,
-    `description` TEXT NULL,
-    `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
-    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_departments_code` (`code`)
-) ENGINE=InnoDB;
-SQL);
+        Schema::create('departments', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->text('description')->nullable();
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->enum('approval_status', ['pending_approval', 'approved', 'rejected'])->default('approved');
+            $table->foreignId('approved_by')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->text('rejection_reason')->nullable();
+            $table->softDeletes();
+            $table->timestamps();
+        });
     }
 
     public function down(): void

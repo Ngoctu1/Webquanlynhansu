@@ -100,7 +100,34 @@
             <strong>@yield('title', 'Hồ sơ của tôi')</strong>
         </div>
         <div class="topbar-right">
-            @if(auth()->user()->canManageHrm())
+            @if(!empty($notificationCounts['items']))
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm position-relative d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell"></i>
+                    <span class="d-none d-md-inline">Thông báo</span>
+                    @if(($notificationCounts['total_badges'] ?? 0) > 0)
+                        <span class="badge rounded-pill bg-danger">{{ $notificationCounts['total_badges'] }}</span>
+                    @endif
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="min-width: 300px;">
+                    <div class="px-2 py-1 border-bottom mb-1 fw-bold small text-uppercase text-muted">
+                        Cập nhật đơn nghỉ phép
+                    </div>
+                    @foreach($notificationCounts['items'] as $item)
+                        <a href="{{ $item['url'] }}" class="dropdown-item rounded py-2 d-flex justify-content-between align-items-center">
+                            <div class="pe-2" style="white-space: normal;">
+                                <div class="fw-semibold small {{ !empty($item['urgent']) ? 'text-danger' : '' }}">{{ $item['label'] }}</div>
+                                <div class="text-muted" style="font-size: 11.5px;">{{ $item['subtext'] }}</div>
+                            </div>
+                            <span class="badge {{ ($item['count'] ?? 0) > 0 ? (!empty($item['urgent']) ? 'bg-danger' : 'bg-primary') : 'bg-secondary' }}">
+                                {{ $item['count'] ?? 0 }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+            @if(auth()->user()->hasManagementAccess())
             <a href="{{ route('admin.dashboard') }}"
                class="btn btn-light btn-sm d-inline-flex align-items-center gap-1">
                 <i class="bi bi-grid"></i>

@@ -36,7 +36,7 @@
         <a class="stat-card" href="{{ route('employees.index') }}">
             <div class="stat-top"><span>Tổng nhân viên</span><i class="bi bi-people"></i></div>
             <strong>{{ str_pad($employeeCount, 2, '0', STR_PAD_LEFT) }}</strong>
-            <small>Hồ sơ trong hệ thống</small>
+            <small>Hồ sơ trong phạm vi quản lý</small>
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
@@ -47,7 +47,7 @@
         </a>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <a class="stat-card stat-highlight" href="{{ route('contracts.index') }}">
+        <a class="stat-card stat-highlight" href="{{ route('contracts.index', ['status' => 'pending_approval']) }}">
             <div class="stat-top"><span>Hợp đồng chờ duyệt</span><i class="bi bi-hourglass-split"></i></div>
             <strong>{{ str_pad($pendingContracts, 2, '0', STR_PAD_LEFT) }}</strong>
             <small>Yêu cầu cần được xem xét</small>
@@ -61,6 +61,26 @@
         </a>
     </div>
 </div>
+
+@if(!empty($notificationCounts['items']))
+<div class="row g-3 mt-1 mb-3">
+    @foreach($notificationCounts['items'] as $item)
+    <div class="col-md-4">
+        <a href="{{ $item['url'] }}" class="card p-3 text-decoration-none h-100 border-start border-4 {{ !empty($item['urgent']) ? 'border-danger' : 'border-primary' }}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-bold text-dark">{{ $item['label'] }}</div>
+                    <div class="small text-muted">{{ $item['subtext'] }}</div>
+                </div>
+                <span class="badge fs-6 {{ ($item['count'] ?? 0) > 0 ? (!empty($item['urgent']) ? 'bg-danger' : 'bg-primary') : 'bg-secondary' }}">
+                    {{ $item['count'] ?? 0 }}
+                </span>
+            </div>
+        </a>
+    </div>
+    @endforeach
+</div>
+@endif
 
 <div class="row g-4 mt-1">
     <div class="col-xl-8">

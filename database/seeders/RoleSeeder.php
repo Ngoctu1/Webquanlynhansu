@@ -1,4 +1,5 @@
 <?php
+
 namespace Database\Seeders;
 
 use App\Models\Role;
@@ -8,8 +9,15 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach ([Role::HR => 'Nhân sự', Role::DIRECTOR => 'Giám đốc và quản lý nhân sự', Role::EMPLOYEE => 'Nhân viên', Role::ADMIN => 'Quản trị toàn hệ thống'] as $name => $description) {
-            Role::updateOrCreate(['name' => $name], ['description' => $description]);
+        $roles = [
+            1 => ['name' => Role::ADMIN, 'description' => 'Quản trị viên kỹ thuật'],
+            2 => ['name' => Role::DIRECTOR, 'description' => 'Giám đốc điều hành - duyệt thay đổi'],
+            3 => ['name' => Role::HR, 'description' => 'Quản lý nhân sự'],
+            4 => ['name' => Role::EMPLOYEE, 'description' => 'Nhân viên'],
+        ];
+
+        foreach ($roles as $id => $data) {
+            Role::updateOrCreate(['id' => $id], $data);
         }
     }
 }

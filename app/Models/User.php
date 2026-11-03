@@ -8,12 +8,81 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory;
-    use Notifiable;
+    use HasFactory, Notifiable;
 
-    protected $fillable = ['employee_id', 'role_id', 'email', 'password', 'status', 'activation_token_hash', 'activation_expires_at', 'activated_at', 'last_login_at'];
+    protected $fillable = [
+        'employee_id',
+        'role_id',
+        'email',
+        'password',
+        'status',
+        'activation_token',
+        'token_expires_at',
+        'last_login_at',
+    ];
 
-    protected $hidden = ['password', 'remember_token', 'activation_token_hash'];
+    protected $hidden = [
+        'password',
+        'remember_token',
+        'activation_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'token_expires_at' => 'datetime',
+            'last_login_at' => 'datetime',
+        ];
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->name === Role::ADMIN;
+    }
+
+    public function isDirector(): bool
+    {
+        return $this->role?->name === Role::DIRECTOR;
+    }
+
+    public function isHR(): bool
+    {
+        return $this->role?->name === Role::HR;
+    }
+
+    public function isEmployee(): bool
+    {
+        return $this->role?->name === Role::EMPLOYEE;
+    }
+
+    public function hasManagementAccess(): bool
+    {
+        return $this->isAdmin() || $this->isDirector() || $this->isHR();
+    }
+
+    public function needsApproval(): bool
+    {
+        if ($this->isHR()) {
+            return true;
+        }
+
+        if ($this->isDirector() || $this->isAdmin()) {
+            return false;
+        }
+
+        return true;
+    }
 
     public function hasRole(string ...$roles): bool
     {
@@ -22,12 +91,12 @@ class User extends Authenticatable
 
     public function homePath(): string
     {
-        return $this->canManageHrm() ? '/admin' : '/user';
+        return $this->hasManagementAccess() ? '/admin' : '/user';
     }
 
     public function canManageHrm(): bool
     {
-        return $this->hasRole(Role::HR, Role::DIRECTOR, Role::ADMIN);
+        return $this->hasManagementAccess();
     }
 
     public function canApprove(): bool
@@ -35,16 +104,18 @@ class User extends Authenticatable
         return $this->hasRole(Role::DIRECTOR, Role::ADMIN);
     }
 
-    protected function casts(): array
+    public function approvedContracts()
     {
-        return ['password' => 'hashed', 'activation_expires_at' => 'datetime', 'activated_at' => 'datetime', 'last_login_at' => 'datetime'];
+        return $this->hasMany(Contract::class, 'approved_by');
     }
 
-    public function employee() { return $this->belongsTo(Employee::class); }
-    public function role() { return $this->belongsTo(Role::class); }
-    public function createdContracts() { return $this->hasMany(Contract::class, 'created_by'); }
-    public function submittedContracts() { return $this->hasMany(Contract::class, 'submitted_by'); }
-    public function approvedContracts() { return $this->hasMany(Contract::class, 'approved_by'); }
-    public function reviewedLeaveRequests() { return $this->hasMany(LeaveRequest::class, 'reviewed_by'); }
-    public function auditLogs() { return $this->hasMany(AuditLog::class, 'user_id'); }
+    public function reviewedLeaveRequests()
+    {
+        return $this->hasMany(LeaveRequest::class, 'reviewed_by');
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class, 'user_id');
+    }
 }

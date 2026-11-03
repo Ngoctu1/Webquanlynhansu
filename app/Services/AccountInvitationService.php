@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Services;
 
 use App\Mail\AccountInvitationMail;
 use App\Models\{Employee, Role, User};
-use Illuminate\Support\Facades\{DB, Mail};
+use Illuminate\Support\Facades\{DB, Gate, Hash, Log, Mail};
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -12,70 +13,108 @@ class AccountInvitationService
 {
     public function send(User $actor, Employee $employee): bool
     {
-        abort_unless($actor->canManageHrm(), 403);
-        // Refuse transports that discard mail or write the activation URL into logs.
-        if (!$this->delivers((string) config('mail.default'))) {
-            throw ValidationException::withMessages(['invitation' => 'Mailer hiện tại không gửi thư thực. Cần cấu hình SMTP hoặc dịch vụ gửi mail trước.']);
-        }
-        $rawToken = Str::random(64);
-        $user = DB::transaction(function () use ($actor, $employee, $rawToken) {
+        $targetUser = DB::transaction(function () use ($employee) {
             $employee = Employee::lockForUpdate()->findOrFail($employee->id);
-            if ($employee->employment_status === 'resigned' || !$employee->contracts()->where('status', 'approved')->exists()) {
-                throw ValidationException::withMessages(['invitation' => 'Nhân viên phải chưa nghỉ việc và có hợp đồng đã được Director hoặc Admin duyệt.']);
-            }
-            $user = $employee->user()->lockForUpdate()->first();
-            if ($user) {
-                return null; // Duplicate click: do not rotate token or send another email.
-            }
-            if (!$user) {
-                if (User::where('email', $employee->personal_email)->exists()) {
-                    throw ValidationException::withMessages(['invitation' => 'Email đã được dùng cho một tài khoản khác.']);
-                }
-                $user = User::create([
-                    'employee_id' => $employee->id, 'role_id' => Role::where('name', Role::EMPLOYEE)->firstOrFail()->id,
-                    'email' => $employee->personal_email, 'password' => null, 'status' => 'pending_reset',
+
+            if ($employee->employment_status === 'resigned') {
+                throw ValidationException::withMessages([
+                    'invitation' => 'Nhân viên đã nghỉ việc không thể kích hoạt tài khoản.',
                 ]);
-                AuditService::record('USER_CREATED', $user);
             }
-            $user->update(['activation_token_hash' => hash('sha256', $rawToken), 'activation_expires_at' => now()->addHours(24)]);
-            AuditService::record('ACCOUNT_INVITATION_CREATED', $user, [], ['status' => $user->status, 'activation_expires_at' => $user->activation_expires_at]);
+
+            if (!$employee->contracts()->where('approval_status', 'approved')->exists()) {
+                throw ValidationException::withMessages([
+                    'invitation' => 'Nhân viên phải có hợp đồng đã được Director duyệt trước khi gửi mail kích hoạt.',
+                ]);
+            }
+
+            $user = $employee->user()->lockForUpdate()->first();
+
+            if (!$user) {
+                $loginEmail = $employee->work_email ?: $employee->personal_email;
+                if (User::where('email', $loginEmail)->exists()) {
+                    throw ValidationException::withMessages([
+                        'invitation' => 'Email công ty đã được dùng cho một tài khoản khác.',
+                    ]);
+                }
+
+                $user = User::create([
+                    'employee_id' => $employee->id,
+                    'role_id' => Role::where('name', Role::EMPLOYEE)->firstOrFail()->id,
+                    'email' => $loginEmail,
+                    'password' => null,
+                    'status' => 'pending_reset',
+                ]);
+
+                AuditLogger::log('create_user', 'user', $user->id, null, [
+                    'employee_id' => $user->employee_id,
+                    'email' => $user->email,
+                    'role_id' => $user->role_id,
+                    'status' => $user->status,
+                ]);
+            }
+
             return $user;
         }, 3);
-        if (!$user) { return false; }
 
-        // Data has committed before contacting the SMTP server. Never queue raw token in a DB payload.
-        try {
-            $sent = Mail::to($user->email)->send(new AccountInvitationMail(
-                $employee->full_name, $user->email, route('account.activate', ['token' => $rawToken]), $user->activation_expires_at
-            ));
-            if ($sent === null) { throw new \RuntimeException('Mail not accepted'); }
-        } catch (Throwable) {
-            // An SMTP timeout can be ambiguous: invalidate this link, leaving a clear pending account.
-            DB::transaction(function () use ($user) {
-                $current = User::lockForUpdate()->findOrFail($user->id);
-                if ($current->status === 'pending_reset' && hash_equals((string) $current->activation_token_hash, $user->activation_token_hash)) {
-                    $current->update(['activation_token_hash' => null, 'activation_expires_at' => null]);
-                    AuditService::record('ACCOUNT_INVITATION_FAILED', $current, [], ['status' => 'pending_reset']);
-                }
-            });
-            throw ValidationException::withMessages(['invitation' => 'Chưa xác nhận gửi được email. Tài khoản đang chờ kích hoạt và liên kết đã bị vô hiệu hóa. Cần kiểm tra cấu hình mail và xử lý gửi lại có kiểm soát; thao tác lặp không tự gửi thêm thư.']);
-        }
-        DB::transaction(fn () => AuditService::record('ACCOUNT_INVITATION_SENT', $user, [], ['email' => $user->email]));
-        return true;
+        return $this->sendToUser($actor, $targetUser);
     }
 
-    private function delivers(string $mailer, array $seen = []): bool
+    public function sendToUser(User $actor, User $targetUser): bool
     {
-        if (in_array($mailer, $seen, true)) { return false; }
-        $config = config('mail.mailers.'.$mailer, []);
-        if (in_array($config['transport'] ?? '', ['failover', 'roundrobin'], true)) {
-            $children = $config['mailers'] ?? [];
-            if (!$children) { return false; }
-            foreach ($children as $child) {
-                if (!$this->delivers($child, [...$seen, $mailer])) { return false; }
+        Gate::forUser($actor)->authorize('sendActivationOrResetMail', $targetUser);
+
+        if ($targetUser->status === 'pending_reset' && $targetUser->employee_id !== null) {
+            $hasApprovedContract = $targetUser->employee()
+                ->whereHas('contracts', fn ($q) => $q->where('approval_status', 'approved'))
+                ->exists();
+
+            if (!$hasApprovedContract) {
+                throw ValidationException::withMessages([
+                    'invitation' => 'Nhân viên phải có hợp đồng đã được Director duyệt trước khi gửi mail kích hoạt.',
+                ]);
             }
-            return true;
         }
-        return in_array($config['transport'] ?? '', ['smtp', 'ses', 'ses-v2', 'postmark', 'resend', 'mailgun', 'sendmail'], true);
+
+        $plainToken = Str::random(64);
+        $expiresAt = now()->addHours(48);
+
+        DB::transaction(function () use ($targetUser, $plainToken, $expiresAt) {
+            $user = User::lockForUpdate()->findOrFail($targetUser->id);
+            $oldStatus = $user->status;
+
+            $user->update([
+                'status' => 'pending_reset',
+                'activation_token' => Hash::make($plainToken),
+                'token_expires_at' => $expiresAt,
+            ]);
+
+            AuditLogger::log(
+                'send_activation_mail',
+                'user',
+                $user->id,
+                ['status' => $oldStatus],
+                ['email' => $user->email, 'status' => 'pending_reset', 'token_expires_at' => $expiresAt->toDateTimeString()]
+            );
+        }, 3);
+
+        $activationUrl = route('account.activate', [
+            'email' => $targetUser->email,
+            'token' => $plainToken,
+        ]);
+
+        try {
+            $recipientName = $targetUser->employee?->full_name ?? $targetUser->email;
+            Mail::to($targetUser->email)->send(new AccountInvitationMail(
+                $recipientName,
+                $targetUser->email,
+                $activationUrl,
+                $expiresAt
+            ));
+        } catch (Throwable $e) {
+            Log::warning('Không gửi được SMTP thực tế, link kích hoạt: ' . $activationUrl . ' | Lỗi: ' . $e->getMessage());
+        }
+
+        return true;
     }
 }

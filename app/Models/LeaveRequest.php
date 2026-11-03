@@ -9,13 +9,45 @@ class LeaveRequest extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['employee_id', 'start_date', 'end_date', 'leave_type', 'reason', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason'];
+    protected $fillable = [
+        'employee_id',
+        'leave_type',
+        'start_date',
+        'end_date',
+        'total_days',
+        'reason',
+        'attachment_path',
+        'is_retroactive',
+        'created_by',
+        'status',
+        'reviewed_by',
+        'reviewed_at',
+        'rejection_reason',
+    ];
 
     protected function casts(): array
     {
-        return ['start_date' => 'date', 'end_date' => 'date', 'reviewed_at' => 'datetime'];
+        return [
+            'start_date' => 'date',
+            'end_date' => 'date',
+            'total_days' => 'decimal:2',
+            'is_retroactive' => 'boolean',
+            'reviewed_at' => 'datetime',
+        ];
     }
 
-    public function employee() { return $this->belongsTo(Employee::class); }
-    public function reviewer() { return $this->belongsTo(User::class, 'reviewed_by'); }
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
 }

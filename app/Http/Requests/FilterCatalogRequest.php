@@ -8,6 +8,10 @@ class FilterCatalogRequest extends HrmRequest
 {
     public function rules(): array
     {
-        return ['q' => 'nullable|string|max:120', 'status' => ['nullable', Rule::in(['active', 'inactive'])]];
+        return [
+            'q' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'approval_status' => ['nullable', Rule::in(['pending_approval', 'approved', 'rejected'])],
+        ];
     }
 }

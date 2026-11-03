@@ -32,9 +32,17 @@
             <i class="bi bi-people"></i>Nhân viên</a>
         <a class="{{ request()->routeIs('contracts.*') ? 'active' : '' }}" href="{{ route('contracts.index') }}">
             <i class="bi bi-file-earmark-text"></i>Hợp đồng</a>
-        @if(auth()->user()->hasRole(\App\Models\Role::HR))
+        @if(auth()->user()->hasManagementAccess())
         <a class="{{ request()->routeIs('leave-requests.*') ? 'active' : '' }}" href="{{ route('leave-requests.index') }}">
             <i class="bi bi-check2-square"></i>Quản lý nghỉ phép</a>
+        @endif
+        @if(auth()->user()->isDirector())
+        <a class="{{ request()->routeIs('change-requests.*') ? 'active' : '' }}" href="{{ route('change-requests.index') }}">
+            <i class="bi bi-clipboard2-check"></i>Duyệt đề xuất HR
+            @if(($notificationCounts['pending_hr_proposals'] ?? 0) > 0)
+                <span class="badge bg-danger ms-auto">{{ $notificationCounts['pending_hr_proposals'] }}</span>
+            @endif
+        </a>
         @endif
 
         <div class="nav-label">DANH MỤC &amp; HỆ THỐNG</div>
@@ -44,8 +52,10 @@
             <i class="bi bi-briefcase"></i>Chức vụ</a>
         <a class="{{ request()->routeIs('users.*') ? 'active' : '' }}" href="{{ route('users.index') }}">
             <i class="bi bi-shield-person"></i>Tài khoản</a>
+        @can('view-audit-logs')
         <a class="{{ request()->routeIs('audit.*') ? 'active' : '' }}" href="{{ route('audit.index') }}">
             <i class="bi bi-clock-history"></i>Lịch sử thao tác</a>
+        @endcan
 
         <div class="nav-label">CÁ NHÂN</div>
         <a class="{{ request()->routeIs('user.*') ? 'active' : '' }}" href="{{ route('user.dashboard') }}">
@@ -84,6 +94,33 @@
             <strong>@yield('title', 'Tổng quan')</strong>
         </div>
         <div class="topbar-right">
+            @if(!empty($notificationCounts['items']))
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm position-relative d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-bell"></i>
+                    <span class="d-none d-md-inline">Việc cần xử lý</span>
+                    @if(($notificationCounts['total_badges'] ?? 0) > 0)
+                        <span class="badge rounded-pill bg-danger">{{ $notificationCounts['total_badges'] }}</span>
+                    @endif
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="min-width: 320px;">
+                    <div class="px-2 py-1 border-bottom mb-1 fw-bold small text-uppercase text-muted">
+                        Thông báo &amp; Việc cần xử lý ({{ $notificationCounts['role'] ?? '' }})
+                    </div>
+                    @foreach($notificationCounts['items'] as $item)
+                        <a href="{{ $item['url'] }}" class="dropdown-item rounded py-2 d-flex justify-content-between align-items-center">
+                            <div class="pe-2" style="white-space: normal;">
+                                <div class="fw-semibold small {{ !empty($item['urgent']) ? 'text-danger' : '' }}">{{ $item['label'] }}</div>
+                                <div class="text-muted" style="font-size: 11.5px;">{{ $item['subtext'] }}</div>
+                            </div>
+                            <span class="badge {{ ($item['count'] ?? 0) > 0 ? (!empty($item['urgent']) ? 'bg-danger' : 'bg-primary') : 'bg-secondary' }}">
+                                {{ $item['count'] ?? 0 }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
             @if(auth()->user()->hasRole(\App\Models\Role::HR, 'Director'))
             <a href="{{ route('user.leave-requests.index') }}" class="btn btn-light btn-sm d-inline-flex align-items-center gap-1">
                 <i class="bi bi-calendar2-check"></i><span class="d-none d-sm-inline">Nghỉ phép cá nhân</span>

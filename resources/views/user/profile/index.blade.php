@@ -44,7 +44,7 @@
 <section class="portal-profile-overview mb-4" aria-labelledby="profileName">
     <div class="d-flex flex-wrap align-items-center gap-4">
         {{-- Avatar / Photo --}}
-        @if($employee?->profile_photo_path)
+        @if($employee?->avatar)
             <img class="portal-avatar-lg shadow" src="{{ route('employees.photo', $employee) }}" alt="Ảnh đại diện {{ $employee->full_name }}" style="object-fit:cover">
         @else
             <div class="portal-avatar portal-avatar-lg shadow" aria-hidden="true">{{ $profileInitials }}</div>
@@ -203,7 +203,16 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-12">
+                    <div class="col-sm-6">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-card-heading"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Số CCCD (12 số)</dt>
+                                <dd>{{ $employee?->citizen_id ?: 'Chưa cập nhật' }}</dd>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
                         <div class="portal-info-item">
                             <div class="portal-info-item-icon"><i class="bi bi-envelope"></i></div>
                             <div class="portal-info-item-content">
@@ -283,7 +292,62 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-12">
+                        <div class="portal-info-item">
+                            <div class="portal-info-item-icon"><i class="bi bi-calendar-heart"></i></div>
+                            <div class="portal-info-item-content">
+                                <dt>Tiêu chuẩn phép năm</dt>
+                                <dd>{{ $employee?->annual_leave_days ?? 12 }} ngày / năm</dd>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </section>
+    </div>
+
+    {{-- TÀI LIỆU CÁ NHÂN ĐÍNH KÈM --}}
+    <div class="col-12">
+        <section class="portal-card" aria-labelledby="myDocuments">
+            <div class="portal-card-header">
+                <span class="portal-icon"><i class="bi bi-folder2-open" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="myDocuments">Tài liệu cá nhân của tôi</h2>
+                    <p>CCCD, Sơ yếu lý lịch (CV), Bằng cấp và các tài liệu lưu trữ trong hồ sơ nhân sự.</p>
+                </div>
+            </div>
+            <div class="portal-card-body">
+                @php($myDocs = $documents ?? $employee?->employeeDocuments ?? collect())
+                @if($myDocs->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Loại tài liệu</th>
+                                    <th>Tiêu đề</th>
+                                    <th>Ngày lưu</th>
+                                    <th>Tải xuống</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($myDocs as $doc)
+                                <tr>
+                                    <td><span class="badge bg-secondary">{{ strtoupper($doc->doc_type) }}</span></td>
+                                    <td class="fw-semibold">{{ $doc->title }}</td>
+                                    <td>{{ $doc->created_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                                    <td>
+                                        <a href="{{ route('documents.download', $doc) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-download me-1"></i>Tải xuống
+                                        </a>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <p class="text-muted mb-0">Chưa có tài liệu đính kèm nào trong hồ sơ của bạn.</p>
+                @endif
             </div>
         </section>
     </div>
@@ -328,6 +392,28 @@
                         </div>
                     </div>
                 </div>
+                <hr class="my-4">
+                <h3 class="h6 fw-bold mb-3"><i class="bi bi-key me-1"></i>Đổi mật khẩu cá nhân</h3>
+                <form method="POST" action="{{ route('user.password.update') }}" class="row g-3" style="max-width: 720px;">
+                    @csrf
+                    @method('PUT')
+                    <div class="col-md-4">
+                        <label for="current_password" class="form-label small fw-semibold">Mật khẩu hiện tại</label>
+                        <input type="password" name="current_password" id="current_password" class="form-control form-control-sm" required autocomplete="current-password">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="password" class="form-label small fw-semibold">Mật khẩu mới</label>
+                        <input type="password" name="password" id="password" class="form-control form-control-sm" required minlength="8" maxlength="72" autocomplete="new-password">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="password_confirmation" class="form-label small fw-semibold">Xác nhận mật khẩu mới</label>
+                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control form-control-sm" required minlength="8" maxlength="72" autocomplete="new-password">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary btn-sm">Cập nhật mật khẩu</button>
+                    </div>
+                </form>
+
                 <div class="portal-notice mt-4">
                     <i class="bi bi-shield-check"></i>
                     <div>

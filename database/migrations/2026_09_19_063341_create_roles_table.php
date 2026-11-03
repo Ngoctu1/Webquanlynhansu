@@ -1,28 +1,19 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (!in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
-            throw new RuntimeException('HRM migrations require MySQL/MariaDB; do not run this schema on SQLite.');
-        }
-        // Final development schema; recreate using migrate:fresh --seed.
-        DB::unprepared(<<<'SQL'
-CREATE TABLE `roles` (
-    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    `name` ENUM('HR','Director','Employee','Admin') NOT NULL,
-    `description` VARCHAR(255) NULL,
-    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_roles_name` (`name`)
-) ENGINE=InnoDB;
-SQL);
+        Schema::create('roles', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 50)->unique();
+            $table->string('description', 255)->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
